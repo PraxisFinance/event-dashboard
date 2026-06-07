@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id                  String      @id @default(uuid())
+  sourceId            String?     @unique
+  source              String
+  title               String
+  description         String?
+  status              EventStatus @default(open)
+  onPlatform          Boolean     @default(false)
+  dismissed           Boolean     @default(false)
+  contractEventId     String?
+  contractTxHash      String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  syncedAt            DateTime?
+  categories          String[]    @default([])
+  conditionId         String?
+  expirationTimestamp Float?
+  marketType          String?
+  slug                String?
+  tags                String[]    @default([])
+  resolutionTypeTuple String?
+  votingDeadlineTs    Float?
+  vault               String?
+  logoPath            String?
+  cpfAddress          String?
+  resolutionStatus    String?
+}
+
+model Admin {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique
+  label         String?
+  createdAt     DateTime @default(now())
+}
+
+model RydContract {
+  id          String   @id @default(uuid())
+  address     String   @unique
+  name        String
+  description String?
+  vault       String
+  numWinners  Int
+  minDeposit  String
+  endTime     DateTime
+  txHash      String?
+  createdAt   DateTime @default(now())
+}
+
+model CachedMarket {
+  id                  Int       @id
+  tradeType           String
+  volume              Float
+  liquidity           Float
+  expirationTimestamp Float
+  createdAt           DateTime?
+  stableSlug          String?
+  data                Json
+
+  @@index([tradeType])
+  @@index([volume(sort: Desc)])
+  @@index([liquidity(sort: Desc)])
+  @@index([expirationTimestamp])
+  @@index([createdAt])
+  @@index([stableSlug])
+}
+
+model Subscription {
+  id                          String    @id @default(uuid())
+  stableSlug                  String    @unique
+  title                       String
+  vault                       String?
+  cpfAddress                  String?
+  categories                  String[]  @default([])
+  tags                        String[]  @default([])
+  resolutionTypeTuple         String?
+  marketType                  String?
+  active                      Boolean   @default(true)
+  lastTriggeredAt             DateTime?
+  lastDeployedSourceId        Int?
+  lastDeployedSlug            String?
+  lastDeployedMarketCreatedAt DateTime?
+  lastCreatedEventId          String?
+  lastDeployTxHash            String?
+  lastError                   String?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+}
+
+model WorkerState {
+  key                       String    @id
+  lastSourceMarketCreatedAt DateTime?
+  lastRunAt                 DateTime?
+  lastSuccessAt             DateTime?
+  lastError                 String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+}
+
+model CacheMetadata {
+  key        String   @id
+  totalCount Int
+  updatedAt  DateTime @updatedAt
+}
+
+model TwoPoolContract {
+  id          String   @id @default(uuid())
+  address     String   @unique
+  name        String
+  description String?
+  vault       String
+  yt          String?
+  curve       String
+  targetRate  String
+  startTime   DateTime
+  endTime     DateTime
+  txHash      String?
+  createdAt   DateTime @default(now())
+}
+
+model UserActivity {
+  id           String  @id
+  userAddress  String
+  kind         String
+  productAddr  String
+  marketRef    String?
+  amountDelta  String
+  blockNumber  BigInt
+  blockTime    BigInt
+  metadataJson Json
+
+  @@index([userAddress, blockTime])
+  @@index([userAddress])
+}
+
+model UserHistoryCache {
+  id                 String   @id
+  userAddress        String   @unique
+  lastProcessedBlock BigInt
+  envioBlockAtSync   BigInt
+  schemaVersion      Int
+  portfolioJson      Json
+  touchedVaults      String[]
+  touchedRyds        String[]
+  touchedCpfPools    String[]
+  touchedTwoPools    String[]
+  updatedAt          DateTime
+}
+
+model UserPortfolioPoint {
+  id            String @id
+  userAddress   String
+  bucketDate    String
+  bucketTs      BigInt
+  totalValue    String
+  breakdownJson Json
+
+  @@unique([userAddress, bucketDate])
+  @@index([userAddress, bucketTs])
+}
+
+enum EventStatus {
+  open
+  resolved
+  cancelled
+}
