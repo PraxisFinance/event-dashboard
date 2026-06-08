@@ -18,6 +18,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect, useCallback } from "react";
 import { CreateVaultDialog } from "@/components/vaults/create-vault-dialog";
+import { useBackendAuth } from "@/hooks/use-backend-auth";
 
 function shortAddr(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -195,10 +196,12 @@ export function VaultsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { ensureAuthenticated } = useBackendAuth();
 
   const fetchVaults = useCallback(async () => {
     setIsFetching(true);
     try {
+      await ensureAuthenticated();
       const result = await backendFetch<VaultState[]>('/vaults');
       setData(result);
       setError(null);
@@ -208,7 +211,7 @@ export function VaultsPage() {
       setIsLoading(false);
       setIsFetching(false);
     }
-  }, []);
+  }, [ensureAuthenticated]);
 
   useEffect(() => {
     void fetchVaults();
@@ -389,6 +392,17 @@ export function VaultsPage() {
                   Set <code className="font-mono">ENVIO_INDEXER_URL</code> in
                   your environment.
                 </p>
+              )}
+              {(error.message.includes("re-authenticate") || error.message.includes("sign in") || error.message.includes("401")) && (
+                <Button
+                  size="sm"
+                  className="mt-2 h-8 text-xs"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                >
+                  {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                  Sign in & retry
+                </Button>
               )}
             </div>
           ) : vaults.length === 0 ? (
