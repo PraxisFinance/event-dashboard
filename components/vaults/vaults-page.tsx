@@ -16,7 +16,7 @@ import {
   Vault,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { CreateVaultDialog } from "@/components/vaults/create-vault-dialog";
 import { useBackendAuth } from "@/hooks/use-backend-auth";
 
@@ -197,11 +197,13 @@ export function VaultsPage() {
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { ensureAuthenticated } = useBackendAuth();
+  const ensureAuthRef = useRef(ensureAuthenticated);
+  useEffect(() => { ensureAuthRef.current = ensureAuthenticated; });
 
   const fetchVaults = useCallback(async () => {
     setIsFetching(true);
     try {
-      await ensureAuthenticated();
+      await ensureAuthRef.current();
       const result = await backendFetch<VaultState[]>('/vaults');
       setData(result);
       setError(null);
@@ -211,7 +213,7 @@ export function VaultsPage() {
       setIsLoading(false);
       setIsFetching(false);
     }
-  }, [ensureAuthenticated]);
+  }, []);
 
   useEffect(() => {
     void fetchVaults();

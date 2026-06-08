@@ -130,7 +130,7 @@ export function CreateMarketDialog({
   const { ensureAuthenticated } = useBackendAuth();
   const [vaultsList, setVaultsList] = useState<VaultState[]>([]);
   useEffect(() => {
-    backendFetch<VaultState[]>('/api/vaults').then(setVaultsList).catch(() => {});
+    backendFetch<VaultState[]>('/vaults').then(setVaultsList).catch(() => {});
   }, []);
   const selectedVault = useVaultStore((s) => s.selectedVault);
   const vaultAddress = selectedVault?.id?.trim() ?? "";

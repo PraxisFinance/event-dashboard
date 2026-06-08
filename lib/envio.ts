@@ -113,13 +113,13 @@ function mergeVaultCpfDeployment(
   vaults: Omit<VaultState, "cpfPool">[],
   pairs: RawPairDeployed[],
 ): VaultState[] {
-  const byVault = new Map<string, PraxisRegistryPairInfo>();
+  const byYt = new Map<string, PraxisRegistryPairInfo>();
   for (const row of pairs) {
-    byVault.set(normAddr(row.vault), toPairInfo(row));
+    byYt.set(normAddr(row.stakingToken), toPairInfo(row));
   }
 
   return vaults.map((v) => {
-    const pair = byVault.get(normAddr(v.id));
+    const pair = byYt.get(normAddr(v.yt));
     if (!pair) return { ...v, cpfPool: null };
     return { ...v, cpfPool: pair };
   });

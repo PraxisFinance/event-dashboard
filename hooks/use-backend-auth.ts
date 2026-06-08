@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import { useSignMessage } from 'wagmi'
 import { useSession } from 'next-auth/react'
 import { getStoredToken } from '@/lib/backend'
@@ -9,7 +10,7 @@ export function useBackendAuth() {
   const { data: session } = useSession()
   const { signMessageAsync } = useSignMessage()
 
-  const ensureAuthenticated = async (): Promise<void> => {
+  const ensureAuthenticated = useCallback(async (): Promise<void> => {
     if (getStoredToken()) return
 
     const address = (session?.user as { address?: string } | undefined)?.address
@@ -18,7 +19,7 @@ export function useBackendAuth() {
     }
 
     await loginToBackend(address, ({ message }) => signMessageAsync({ message }))
-  }
+  }, [session, signMessageAsync])
 
   return { ensureAuthenticated }
 }
