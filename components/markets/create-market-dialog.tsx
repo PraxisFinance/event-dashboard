@@ -257,7 +257,7 @@ export function CreateMarketDialog({
       setIsLoading(true);
 
       const result = await backendFetch<{ contractTxHash: string; contractEventId: string }>(
-        '/api/events/deploy-market',
+        '/events/deploy-market',
         {
           method: 'POST',
           body: JSON.stringify({

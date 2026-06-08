@@ -106,7 +106,7 @@ export function CreateTwoPoolDialog({
       setIsLoading(true);
 
       const result = await backendFetch<{ txHash: string; poolAddress: string; ytAddress?: string }>(
-        '/api/twopools/deploy',
+        '/twopools/deploy',
         {
           method: 'POST',
           body: JSON.stringify({

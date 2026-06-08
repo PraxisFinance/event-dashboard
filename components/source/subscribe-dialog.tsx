@@ -53,7 +53,7 @@ export function SubscribeDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [vaultsList, setVaultsList] = useState<VaultState[]>([]);
   useEffect(() => {
-    backendFetch<VaultState[]>('/api/vaults').then(setVaultsList).catch(() => {});
+    backendFetch<VaultState[]>('/vaults').then(setVaultsList).catch(() => {});
   }, []);
 
   useEffect(() => {

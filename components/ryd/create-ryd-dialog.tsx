@@ -95,7 +95,7 @@ export function CreateRydDialog({
       setIsLoading(true);
 
       const result = await backendFetch<{ txHash: string; rydAddress: string }>(
-        '/api/ryd/deploy',
+        '/ryd/deploy',
         {
           method: 'POST',
           body: JSON.stringify({

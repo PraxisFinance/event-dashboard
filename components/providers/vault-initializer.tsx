@@ -14,7 +14,7 @@ export function VaultInitializer() {
   const { selectedVault, setSelectedVault } = useVaultStore();
 
   useEffect(() => {
-    backendFetch<VaultState[]>('/api/vaults')
+    backendFetch<VaultState[]>('/vaults')
       .then((vaults) => {
         if (!vaults || vaults.length === 0) return;
 

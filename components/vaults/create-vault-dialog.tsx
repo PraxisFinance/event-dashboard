@@ -117,7 +117,7 @@ export function CreateVaultDialog({
       setIsLoading(true);
 
       const deployResult = await backendFetch<{ vault?: string; cpf?: string; txHash?: string }>(
-        '/api/vaults/deploy',
+        '/vaults/deploy',
         {
           method: 'POST',
           body: JSON.stringify({ usdc, morphoVault, maturityTs, treasury, startTs, endTs }),

@@ -1,84 +1,89 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi'
-import { SiweMessage } from 'siwe'
-import { signIn, useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/primitives/button'
-import { Loader2, ShieldCheck, Wallet, LogOut } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { useAccount, useConnect, useDisconnect, useSignMessage } from "wagmi";
+import { SiweMessage } from "siwe";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/primitives/button";
+import { Loader2, ShieldCheck, Wallet, LogOut } from "lucide-react";
 
 export function LoginPage() {
-  const { address, isConnected, chain } = useAccount()
-  const { connect, connectors } = useConnect()
-  const { disconnect } = useDisconnect()
-  const { mutateAsync: signMessageAsync } = useSignMessage()
-  const { status } = useSession()
-  const router = useRouter()
+  const { address, isConnected, chain } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { mutateAsync: signMessageAsync } = useSignMessage();
+  const { status } = useSession();
+  const router = useRouter();
 
-  const [isSigning, setIsSigning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isSigning, setIsSigning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/')
-  }, [status, router])
+    if (status === "authenticated") router.replace("/");
+  }, [status, router]);
 
   const handleConnect = () => {
-    const injected = connectors.find((c) => c.type === 'injected')
-    if (injected) connect({ connector: injected })
-  }
+    const injected = connectors.find((c) => c.type === "injected");
+    if (injected) connect({ connector: injected });
+  };
 
   const handleSignIn = async () => {
-    if (!address || !chain) return
-    setIsSigning(true)
-    setError(null)
+    if (!address || !chain) return;
+    setIsSigning(true);
+    setError(null);
 
     try {
-      const nonceRes = await fetch('/api/auth/nonce')
-      if (!nonceRes.ok) throw new Error('Failed to fetch nonce')
-      const { nonce } = await nonceRes.json()
+      const nonceRes = await fetch("/api/auth/nonce");
+      if (!nonceRes.ok) throw new Error("Failed to fetch nonce");
+      const { nonce } = await nonceRes.json();
 
       const siweMessage = new SiweMessage({
         domain: window.location.host,
         address,
-        statement: 'Sign in to Praxis Events Dashboard.',
+        statement: "Sign in to Praxis Events Dashboard.",
         uri: window.location.origin,
-        version: '1',
+        version: "1",
         chainId: chain.id,
         nonce,
-      })
+      });
 
       const signature = await signMessageAsync({
         message: siweMessage.prepareMessage(),
-      })
+      });
 
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         message: JSON.stringify(siweMessage),
         signature,
         redirect: false,
-      })
+      });
 
       if (result?.error) {
-        setError('Verification failed. Please try again.')
+        setError("Verification failed. Please try again.");
       }
     } catch (err) {
-      const msg = (err as Error).message ?? ''
-      if (msg.toLowerCase().includes('rejected') || msg.toLowerCase().includes('denied')) {
-        setError('Signature request was rejected.')
+      const msg = (err as Error).message ?? "";
+      if (
+        msg.toLowerCase().includes("rejected") ||
+        msg.toLowerCase().includes("denied")
+      ) {
+        setError("Signature request was rejected.");
       } else {
-        setError('Something went wrong. Please try again.')
+        setError("Something went wrong. Please try again.");
       }
     } finally {
-      setIsSigning(false)
+      setIsSigning(false);
     }
-  }
+  };
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <span className="text-sm text-muted-foreground animate-pulse">Loading…</span>
+        <span className="text-sm text-muted-foreground animate-pulse">
+          Loading…
+        </span>
       </div>
-    )
+    );
   }
 
   return (
@@ -89,7 +94,9 @@ export function LoginPage() {
             PRAXIS
           </span>
           <div className="text-center">
-            <h1 className="text-xl font-semibold text-foreground">Events Dashboard</h1>
+            <h1 className="text-xl font-semibold text-foreground">
+              Events Dashboard
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Sign in with your Ethereum wallet
             </p>
@@ -122,7 +129,9 @@ export function LoginPage() {
                     {address?.slice(0, 6)}…{address?.slice(-4)}
                   </p>
                   {chain && (
-                    <p className="text-xs text-muted-foreground">{chain.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {chain.name}
+                    </p>
                   )}
                 </div>
                 <Button
@@ -137,21 +146,26 @@ export function LoginPage() {
               </div>
 
               <p className="text-sm text-muted-foreground text-center">
-                Sign a message to verify wallet ownership. No transaction, no gas.
+                Sign a message to verify wallet ownership. No transaction, no
+                gas.
               </p>
 
               {error && (
                 <p className="text-sm text-destructive text-center">{error}</p>
               )}
 
-              <Button onClick={handleSignIn} disabled={isSigning} className="w-full">
+              <Button
+                onClick={handleSignIn}
+                disabled={isSigning}
+                className="w-full"
+              >
                 {isSigning ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Waiting for signature…
                   </>
                 ) : (
-                  'Sign In'
+                  "Sign In"
                 )}
               </Button>
             </div>
@@ -165,5 +179,5 @@ export function LoginPage() {
         </p>
       </div>
     </div>
-  )
+  );
 }
