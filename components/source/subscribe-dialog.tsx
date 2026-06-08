@@ -82,7 +82,7 @@ export function SubscribeDialog({
       await ensureAuthenticated();
       setIsSaving(true);
       setError(null);
-      await backendFetch('/api/subscriptions', {
+      await backendFetch('/subscriptions', {
         method: 'POST',
         body: JSON.stringify({
           stableSlug,

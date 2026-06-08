@@ -93,7 +93,7 @@ export function SourceEventsPage() {
     try {
       await ensureAuthenticated();
       setIsRefreshing(true);
-      await backendFetch('/api/limitless/refresh-cache', { method: 'POST' });
+      await backendFetch('/limitless/refresh-cache', { method: 'POST' });
       void utils.source.list.invalidate();
       void utils.source.cacheStatus.invalidate();
     } catch (err) {

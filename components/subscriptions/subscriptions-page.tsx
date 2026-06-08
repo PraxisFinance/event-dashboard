@@ -57,7 +57,7 @@ function SubscriptionCard({
     try {
       await ensureAuthenticated();
       setIsRemoving(true);
-      await backendFetch(`/api/subscriptions/${sub.id}`, { method: 'DELETE' });
+      await backendFetch(`/subscriptions/${sub.id}`, { method: 'DELETE' });
       onDeleted();
     } catch (err) {
       console.error('Failed to delete subscription:', err);
@@ -70,7 +70,7 @@ function SubscriptionCard({
     try {
       await ensureAuthenticated();
       setIsToggling(true);
-      await backendFetch(`/api/subscriptions/${sub.id}/toggle`, { method: 'PATCH' });
+      await backendFetch(`/subscriptions/${sub.id}/toggle`, { method: 'PATCH' });
       onToggled();
     } catch (err) {
       console.error('Failed to toggle subscription:', err);

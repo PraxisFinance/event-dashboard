@@ -7,7 +7,7 @@ export async function loginToBackend(
   address: string,
   signMessage: (args: { message: string }) => Promise<string>,
 ): Promise<void> {
-  const { nonce } = await fetch(`${BACKEND_URL}/api/auth/nonce`).then((r) => r.json()) as { nonce: string }
+  const { nonce } = await fetch(`${BACKEND_URL}/auth/nonce`).then((r) => r.json()) as { nonce: string }
 
   const message = new SiweMessage({
     domain: window.location.host,
@@ -23,7 +23,7 @@ export async function loginToBackend(
   const signature = await signMessage({ message: prepared })
 
   const { accessToken } = await backendFetch<{ address: string; accessToken: string }>(
-    '/api/auth/verify',
+    '/auth/verify',
     {
       method: 'POST',
       body: JSON.stringify({ message: JSON.stringify(message), signature }),

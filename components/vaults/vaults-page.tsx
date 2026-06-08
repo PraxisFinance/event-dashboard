@@ -199,7 +199,7 @@ export function VaultsPage() {
   const fetchVaults = useCallback(async () => {
     setIsFetching(true);
     try {
-      const result = await backendFetch<VaultState[]>('/api/vaults');
+      const result = await backendFetch<VaultState[]>('/vaults');
       setData(result);
       setError(null);
     } catch (err) {

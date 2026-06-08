@@ -2,9 +2,9 @@
  * Thin client for the Praxis NestJS backend.
  *
  * Auth flow:
- *  1. GET  /api/auth/nonce  → nonce
+ *  1. GET  /auth/nonce  → nonce
  *  2. Sign SIWE message with wallet (wagmi signMessage)
- *  3. POST /api/auth/verify → { accessToken }
+ *  3. POST /auth/verify → { accessToken }
  *  4. Cache token in sessionStorage; refresh on 401.
  */
 
