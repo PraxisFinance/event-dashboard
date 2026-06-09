@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { getTwoPoolDefaultCurveAddress } from "@/lib/praxis-twopools";
+import {
+  getTwoPoolDefaultCurveAddress,
+  getTwoPoolDefaultAlpha,
+  getTwoPoolDefaultFeePercentage,
+  getTwoPoolDefaultSeedAmount,
+  getTwoPoolDefaultTreasury,
+} from "@/lib/praxis-twopools";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +64,16 @@ export function CreateTwoPoolDialog({
   const [targetRateInput, setTargetRateInput] = useState("1000000000000000000");
   const [startTimeInput, setStartTimeInput] = useState(DEFAULT_START);
   const [endTimeInput, setEndTimeInput] = useState(DEFAULT_END);
+  const [alphaInput, setAlphaInput] = useState(getTwoPoolDefaultAlpha());
+  const [treasuryInput, setTreasuryInput] = useState(
+    getTwoPoolDefaultTreasury() ?? "",
+  );
+  const [feePercentageInput, setFeePercentageInput] = useState(
+    getTwoPoolDefaultFeePercentage(),
+  );
+  const [initialLiquidityYtInput, setInitialLiquidityYtInput] = useState(
+    getTwoPoolDefaultSeedAmount(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -70,6 +86,7 @@ export function CreateTwoPoolDialog({
     name.trim().length > 0 &&
     isAddress(vault) &&
     isAddress(curve) &&
+    isAddress(treasuryInput) &&
     !isLoading;
 
   const handleClose = (nextOpen: boolean) => {
@@ -88,12 +105,32 @@ export function CreateTwoPoolDialog({
     try {
       if (!isAddress(vault)) throw new Error("Vault must be a valid address.");
       if (!isAddress(curve)) throw new Error("Curve must be a valid address.");
+      if (!isAddress(treasuryInput))
+        throw new Error("Treasury must be a valid address.");
       if (!name.trim()) throw new Error("Name is required.");
 
       try {
         BigInt(targetRateInput.trim());
       } catch {
         throw new Error("Target rate must be a valid integer (uint256).");
+      }
+
+      try {
+        BigInt(alphaInput.trim());
+      } catch {
+        throw new Error("Alpha must be a valid integer (uint256).");
+      }
+
+      try {
+        BigInt(feePercentageInput.trim());
+      } catch {
+        throw new Error("Fee percentage must be a valid integer (uint256).");
+      }
+
+      try {
+        BigInt(initialLiquidityYtInput.trim());
+      } catch {
+        throw new Error("Initial liquidity must be a valid integer (uint256).");
       }
 
       const startTs = Math.floor(new Date(startTimeInput).getTime() / 1000);
@@ -105,21 +142,26 @@ export function CreateTwoPoolDialog({
       await ensureAuthenticated();
       setIsLoading(true);
 
-      const result = await backendFetch<{ txHash: string; poolAddress: string; ytAddress?: string }>(
-        '/twopools/deploy',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            name: name.trim(),
-            description: description.trim() || null,
-            vaultAddress: vault,
-            curveAddress: curve,
-            targetRate: targetRateInput.trim(),
-            startTs,
-            endTs,
-          }),
-        },
-      );
+      const result = await backendFetch<{
+        txHash: string;
+        poolAddress: string;
+        ytAddress?: string;
+      }>("/twopools/deploy", {
+        method: "POST",
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim() || null,
+          vaultAddress: vault,
+          curveAddress: curve,
+          targetRate: targetRateInput.trim(),
+          startTs,
+          endTs,
+          alpha: alphaInput.trim(),
+          treasury: treasuryInput.trim(),
+          feePercentage: feePercentageInput.trim(),
+          initialLiquidityYt: initialLiquidityYtInput.trim(),
+        }),
+      });
 
       setTxHash(result.txHash);
       setIsSuccess(true);
@@ -134,7 +176,7 @@ export function CreateTwoPoolDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-card border-border text-foreground max-w-lg">
+      <DialogContent className="bg-card border-border text-foreground max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             Deploy Two-Pool Campaign
@@ -145,7 +187,7 @@ export function CreateTwoPoolDialog({
           <div className="flex flex-col items-center gap-4 py-6">
             <CheckCircle2 className="h-10 w-10 text-brand-green" />
             <p className="text-sm font-medium text-foreground">
-              Two-Pool Deployed!
+              Two-Pool Deployed & Seeded!
             </p>
             {txHash && (
               <a
@@ -170,7 +212,7 @@ export function CreateTwoPoolDialog({
         ) : (
           <>
             <div className="flex flex-col gap-4 py-1">
-              {/* Offchain */}
+              {/* Off-chain */}
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Off-chain metadata
               </p>
@@ -197,7 +239,7 @@ export function CreateTwoPoolDialog({
                 />
               </div>
 
-              {/* Onchain */}
+              {/* On-chain */}
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-1">
                 On-chain parameters
               </p>
@@ -217,7 +259,10 @@ export function CreateTwoPoolDialog({
                   )}
                   {!vault && !selectedVault && (
                     <p className="text-xs text-muted-foreground">
-                      <Link href="/vaults" className="underline hover:text-foreground">
+                      <Link
+                        href="/vaults"
+                        className="underline hover:text-foreground"
+                      >
                         Select a vault
                       </Link>{" "}
                       to auto-fill.
@@ -247,18 +292,95 @@ export function CreateTwoPoolDialog({
 
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-medium">
-                  Target rate{" "}
+                  Treasury address *{" "}
                   <span className="font-normal text-muted-foreground">
-                    (uint256, raw)
+                    (receives protocol fees)
                   </span>
                 </Label>
                 <Input
-                  value={targetRateInput}
-                  onChange={(e) => setTargetRateInput(e.target.value)}
-                  placeholder="1000000000000000000"
+                  value={treasuryInput}
+                  onChange={(e) => setTreasuryInput(e.target.value)}
+                  placeholder="0x…"
                   className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                   disabled={isLoading}
                 />
+                {treasuryInput && !isAddress(treasuryInput) && (
+                  <p className="text-xs text-red-400">Invalid address</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">
+                    Target rate{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (uint256)
+                    </span>
+                  </Label>
+                  <Input
+                    value={targetRateInput}
+                    onChange={(e) => setTargetRateInput(e.target.value)}
+                    placeholder="1000000000000000000"
+                    className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">
+                    Alpha{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (uint256)
+                    </span>
+                  </Label>
+                  <Input
+                    value={alphaInput}
+                    onChange={(e) => setAlphaInput(e.target.value)}
+                    placeholder="500000000000000000"
+                    className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">
+                    Fee{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (bps / 10,000)
+                    </span>
+                  </Label>
+                  <Input
+                    value={feePercentageInput}
+                    onChange={(e) => setFeePercentageInput(e.target.value)}
+                    placeholder="100"
+                    className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    e.g. 100 = 1%
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">
+                    Seed liquidity{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (YT wei / side)
+                    </span>
+                  </Label>
+                  <Input
+                    value={initialLiquidityYtInput}
+                    onChange={(e) => setInitialLiquidityYtInput(e.target.value)}
+                    placeholder="1000000000000000000000"
+                    className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Pool receives 2× total YT
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -289,7 +411,7 @@ export function CreateTwoPoolDialog({
             {isLoading && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Deploying via backend wallet — please wait…
+                Deploying & seeding via backend wallet — please wait…
               </div>
             )}
 
@@ -319,7 +441,7 @@ export function CreateTwoPoolDialog({
                 {isLoading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  "Deploy Two-Pool"
+                  "Deploy & Seed"
                 )}
               </Button>
             </DialogFooter>
