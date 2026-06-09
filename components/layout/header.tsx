@@ -23,6 +23,7 @@ const NAV_LINKS = [
   { href: '/vaults', label: 'Vaults' },
   { href: '/ryd', label: 'RYD' },
   { href: '/twopool', label: 'Two-Pool' },
+  { href: '/subscriptions', label: 'Subscriptions' },
 ]
 
 function WalletButton() {
