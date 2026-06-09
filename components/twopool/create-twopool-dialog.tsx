@@ -38,16 +38,22 @@ interface CreateTwoPoolDialogProps {
   onCreated?: () => void;
 }
 
+const MIN_START_OFFSET_MS = 5 * 60 * 1000;
+
 function toDatetimeLocal(d: Date): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-const now = new Date();
-const DEFAULT_START = toDatetimeLocal(now);
-const DEFAULT_END = toDatetimeLocal(
-  new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
-);
+function defaultStart() {
+  return toDatetimeLocal(new Date(Date.now() + 5 * 60 * 1000));
+}
+
+function defaultEnd() {
+  return toDatetimeLocal(
+    new Date(Date.now() + 5 * 60 * 1000 + 90 * 24 * 60 * 60 * 1000),
+  );
+}
 
 export function CreateTwoPoolDialog({
   open,
@@ -62,8 +68,8 @@ export function CreateTwoPoolDialog({
   const [vault, setVault] = useState(() => selectedVault?.id ?? "");
   const [curve, setCurve] = useState(getTwoPoolDefaultCurveAddress() ?? "");
   const [targetRateInput, setTargetRateInput] = useState("1000000000000000000");
-  const [startTimeInput, setStartTimeInput] = useState(DEFAULT_START);
-  const [endTimeInput, setEndTimeInput] = useState(DEFAULT_END);
+  const [startTimeInput, setStartTimeInput] = useState(defaultStart);
+  const [endTimeInput, setEndTimeInput] = useState(defaultEnd);
   const [alphaInput, setAlphaInput] = useState(getTwoPoolDefaultAlpha());
   const [treasuryInput, setTreasuryInput] = useState(
     getTwoPoolDefaultTreasury() ?? "",
@@ -82,11 +88,18 @@ export function CreateTwoPoolDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState<string | undefined>();
 
+  const startTs = startTimeInput ? new Date(startTimeInput).getTime() : NaN;
+  const startTimeError =
+    !Number.isNaN(startTs) && startTs < Date.now() + MIN_START_OFFSET_MS
+      ? "Start time must be at least 5 minutes from now."
+      : null;
+
   const canSubmit =
     name.trim().length > 0 &&
     isAddress(vault) &&
     isAddress(curve) &&
     isAddress(treasuryInput) &&
+    !startTimeError &&
     !isLoading;
 
   const handleClose = (nextOpen: boolean) => {
@@ -137,7 +150,8 @@ export function CreateTwoPoolDialog({
       const endTs = Math.floor(new Date(endTimeInput).getTime() / 1000);
       if (Number.isNaN(startTs)) throw new Error("Invalid start time.");
       if (Number.isNaN(endTs)) throw new Error("Invalid end time.");
-      if (endTs <= startTs) throw new Error("End time must be after start time.");
+      if (endTs <= startTs)
+        throw new Error("End time must be after start time.");
 
       await ensureAuthenticated();
       setIsLoading(true);
@@ -358,9 +372,7 @@ export function CreateTwoPoolDialog({
                     className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                     disabled={isLoading}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    e.g. 100 = 1%
-                  </p>
+                  <p className="text-xs text-muted-foreground">e.g. 100 = 1%</p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -393,6 +405,9 @@ export function CreateTwoPoolDialog({
                     className="h-8 text-xs bg-secondary border-border text-foreground"
                     disabled={isLoading}
                   />
+                  {startTimeError && (
+                    <p className="text-xs text-red-400">{startTimeError}</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs font-medium">End time</Label>
