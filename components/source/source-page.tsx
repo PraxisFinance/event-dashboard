@@ -20,6 +20,7 @@ import {
 import { trpc } from "@/lib/trpc/react";
 import { backendFetch } from "@/lib/backend";
 import { useBackendAuth } from "@/hooks/use-backend-auth";
+import { useVaultStore } from "@/lib/stores/vault-store";
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Search, Sparkles, X } from "lucide-react";
 
 const PAGE_SIZE = 20;
@@ -83,6 +84,10 @@ export function SourceEventsPage() {
   const [subscribeTarget, setSubscribeTarget] = useState<EnrichedSourceMarket | null>(null);
   const [subscribeDialogOpen, setSubscribeDialogOpen] = useState(false);
 
+  // ── Vault ─────────────────────────────────────────────────
+  const selectedVault = useVaultStore((s) => s.selectedVault);
+  const vaultAddress = selectedVault?.id;
+
   // ── Cache ─────────────────────────────────────────────────
   const utils = trpc.useUtils();
   const { ensureAuthenticated } = useBackendAuth();
@@ -115,14 +120,14 @@ export function SourceEventsPage() {
 
   const { data: browseData, isLoading: browseLoading, error: browseError } =
     trpc.source.list.useQuery(
-      { limit: PAGE_SIZE, page, sortBy: apiSortBy, tradeType: tradeType === "all" ? undefined : tradeType },
+      { limit: PAGE_SIZE, page, sortBy: apiSortBy, tradeType: tradeType === "all" ? undefined : tradeType, vaultAddress },
       { enabled: !isSemanticMode }
     );
 
   // ── Semantic search query ─────────────────────────────────
   const { data: searchData, isLoading: searchLoading, error: searchError } =
     trpc.source.search.useQuery(
-      { query: semanticQuery, limit: 20 },
+      { query: semanticQuery, limit: 20, vaultAddress },
       { enabled: isSemanticMode }
     );
 

@@ -54,6 +54,7 @@ async function queryMarketCache(
 async function enrichWithDeploymentStatus(
   markets: SourceMarket[],
   db: PrismaClient,
+  vaultAddress?: string,
 ): Promise<EnrichedSourceMarket[]> {
   if (markets.length === 0) return [];
 
@@ -67,9 +68,9 @@ async function enrichWithDeploymentStatus(
       where: { sourceId: { in: marketIds } },
       select: { id: true, sourceId: true, logoPath: true },
     }),
-    stableSlugs.length > 0
+    stableSlugs.length > 0 && vaultAddress
       ? db.subscription.findMany({
-          where: { stableSlug: { in: stableSlugs } },
+          where: { stableSlug: { in: stableSlugs }, vault: vaultAddress },
           select: { id: true, stableSlug: true },
         })
       : Promise.resolve([]),
@@ -120,13 +121,14 @@ export const sourceRouter = router({
           limit: z.number().int().min(1).max(100).default(20),
           sortBy: z.string().optional(),
           tradeType: z.enum(["amm", "clob", "group"]).optional(),
+          vaultAddress: z.string().optional(),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const { page = 1, limit = 20, sortBy, tradeType } = input ?? {};
+      const { page = 1, limit = 20, sortBy, tradeType, vaultAddress } = input ?? {};
       const { markets, total } = await queryMarketCache(ctx.db, { sortBy, tradeType, page, limit });
-      const enriched = await enrichWithDeploymentStatus(markets, ctx.db);
+      const enriched = await enrichWithDeploymentStatus(markets, ctx.db, vaultAddress);
       return { markets: enriched, total };
     }),
 
@@ -142,6 +144,7 @@ export const sourceRouter = router({
         limit: z.number().int().min(1).max(50).default(20),
         page: z.number().int().min(1).default(1),
         similarityThreshold: z.number().min(0).max(1).default(0.5),
+        vaultAddress: z.string().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -156,6 +159,7 @@ export const sourceRouter = router({
       const markets = await enrichWithDeploymentStatus(
         matched.slice(offset, offset + input.limit),
         ctx.db,
+        input.vaultAddress,
       );
       return { markets, total: matched.length };
     }),
