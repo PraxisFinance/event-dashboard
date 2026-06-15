@@ -38,6 +38,9 @@ import { useVaultStore } from "@/lib/stores/vault-store";
 import type { VaultState } from "@/lib/envio";
 import type { Address } from "viem";
 
+export const EVENT_TYPES = ["crypto", "sport", "esport", "finance", "tech"] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
+
 export interface CreateMarketEvent {
   id: string;
   title: string;
@@ -49,6 +52,7 @@ export interface CreateMarketEvent {
   categories?: string[];
   tags?: string[];
   marketType?: string | null;
+  eventType?: EventType | null;
   slug?: string | null;
   vault?: string | null;
   /** Remote logo URL from the Source market (`logo` field). */
@@ -101,6 +105,7 @@ export function CreateMarketDialog({
   const [editTags, setEditTags] = useState("");
   const [editExpirationInput, setEditExpirationInput] = useState("");
   const [editMarketType, setEditMarketType] = useState("");
+  const [editEventType, setEditEventType] = useState<EventType | null>(null);
   const [editSlug, setEditSlug] = useState("");
   const [votingDeadlineInput, setVotingDeadlineInput] = useState("");
   const [resolutionTypeTuple, setResolutionTypeTuple] = useState<string | null>(
@@ -114,6 +119,11 @@ export function CreateMarketDialog({
     setEditCategories(arrayToInput(event.categories));
     setEditTags(arrayToInput(event.tags));
     setEditMarketType(event.marketType ?? "");
+    setEditEventType(
+      EVENT_TYPES.includes(event.eventType as EventType)
+        ? (event.eventType as EventType)
+        : null,
+    );
     setEditSlug(event.slug ?? "");
 
     const expTs = normaliseTs(event.expirationTimestamp);
@@ -276,6 +286,7 @@ export function CreateMarketDialog({
             categories: inputToArray(editCategories),
             tags: inputToArray(editTags),
             marketType: editMarketType || null,
+            eventType: editEventType ?? null,
             slug: editSlug || null,
             resolutionTypeTuple: resolutionTypeTuple ?? null,
             cpfAddress: poolFactory,
@@ -472,6 +483,38 @@ export function CreateMarketDialog({
                     </p>
                   </div>
                 )}
+
+                {/* Event Type */}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">
+                    Event Type
+                    <span className="text-red-400 ml-0.5">*</span>
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {EVENT_TYPES.map((type) => {
+                      const selected = editEventType === type;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() =>
+                            setEditEventType(selected ? null : type)
+                          }
+                          className={[
+                            "rounded-md border px-3 py-1.5 text-[11px] font-semibold capitalize transition-colors",
+                            "disabled:opacity-50 disabled:cursor-not-allowed",
+                            selected
+                              ? "border-brand-blue bg-brand-blue/10 text-foreground"
+                              : "border-border bg-secondary/30 text-muted-foreground hover:border-border/80 hover:bg-secondary/60",
+                          ].join(" ")}
+                        >
+                          {type}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 <MarketMetadataFields
                   idPrefix="edit"
