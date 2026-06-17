@@ -24,6 +24,7 @@ const NAV_LINKS = [
   { href: '/ryd', label: 'RYD' },
   { href: '/twopool', label: 'Two-Pool' },
   { href: '/subscriptions', label: 'Subscriptions' },
+  { href: '/token-lab', label: 'Token Lab' },
 ]
 
 function WalletButton() {
