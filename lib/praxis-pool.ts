@@ -1,6 +1,6 @@
 import type { Address } from "viem";
-import { isAddress } from "viem";
 import { baseSepolia } from "viem/chains";
+import { deployment } from "@/config/contracts";
 
 /** Chain where Praxis pool contracts are deployed (matches wagmi config). */
 export const praxisChain = baseSepolia;
@@ -9,8 +9,6 @@ export const praxisChain = baseSepolia;
 export const DEFAULT_INITIAL_LIQUIDITY_USDC = 1000;
 
 /** Default CTF for `createPool` / mock setup when not on `cpfPool` (Envio deployment has no CTF field). */
-export function getDefaultCtfContractAddress(): Address | undefined {
-  const raw = process.env.NEXT_PUBLIC_CTF_CONTRACT_ADDRESS?.trim();
-  if (!raw || !isAddress(raw)) return undefined;
-  return raw as Address;
+export function getDefaultCtfContractAddress(): Address {
+  return deployment.mockConditionalTokens;
 }

@@ -73,7 +73,7 @@ export function CreateVaultDialog({
   const praxisRegistryAddress = getPraxisRegistryAddress();
 
   const missingEnv = [
-    !praxisRegistryAddress && "NEXT_PUBLIC_PRAXIS_REGISTRY_ADDRESS",
+    !praxisRegistryAddress && "praxisRegistry (config/contracts.ts)",
   ].filter(Boolean) as string[];
 
   const canSubmit =
@@ -98,7 +98,7 @@ export function CreateVaultDialog({
 
     try {
       if (!praxisRegistryAddress)
-        throw new Error("Missing NEXT_PUBLIC_PRAXIS_REGISTRY_ADDRESS");
+        throw new Error("Missing praxisRegistry in config/contracts.ts");
       if (!isAddress(usdc)) throw new Error("Invalid USDC address");
       if (!isAddress(morphoVault))
         throw new Error("Invalid Morpho vault address");

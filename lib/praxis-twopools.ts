@@ -1,5 +1,6 @@
 import type { Address } from "viem";
 import { isAddress } from "viem";
+import { deployment } from "@/config/contracts";
 
 function parseAddress(raw: string | undefined): Address | undefined {
   const s = (raw ?? "").trim();
@@ -8,8 +9,8 @@ function parseAddress(raw: string | undefined): Address | undefined {
 }
 
 /** Default curve address (can be overridden per-deployment in the form). */
-export function getTwoPoolDefaultCurveAddress(): Address | undefined {
-  return parseAddress(process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_CURVE);
+export function getTwoPoolDefaultCurveAddress(): Address {
+  return deployment.twoPoolRegistry;
 }
 
 /** Default treasury address for fee collection. */

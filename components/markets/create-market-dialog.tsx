@@ -612,9 +612,9 @@ export function CreateMarketDialog({
                         <span className="font-mono text-foreground">
                           stakingToken
                         </span>{" "}
-                        = vault YT). The CTF contract uses{" "}
+                        = vault YT)                        . The CTF contract uses{" "}
                         <span className="font-mono text-foreground">
-                          NEXT_PUBLIC_CTF_CONTRACT_ADDRESS
+                          mockConditionalTokens
                         </span>
                         . With no active vault, set{" "}
                         <span className="font-mono text-foreground">
@@ -622,11 +622,11 @@ export function CreateMarketDialog({
                         </span>{" "}
                         and{" "}
                         <span className="font-mono text-foreground">
-                          NEXT_PUBLIC_CTF_CONTRACT_ADDRESS
+                          mockConditionalTokens
                         </span>{" "}
                         in{" "}
                         <span className="font-mono text-foreground">
-                          .env.local
+                          config/contracts.ts
                         </span>
                         . Restart{" "}
                         <span className="font-mono text-foreground">
@@ -671,18 +671,18 @@ export function CreateMarketDialog({
                           </span>{" "}
                           and valid{" "}
                           <span className="font-mono text-foreground">
-                            NEXT_PUBLIC_CTF_CONTRACT_ADDRESS
-                          </span>
-                          .
+                            mockConditionalTokens
+                          </span>{" "}
+                          (see config/contracts.ts).
                         </li>
                       )}
                       {!vaultAddress && !poolTokenAddress && (
                         <li>
                           Set{" "}
                           <span className="font-mono text-foreground">
-                            NEXT_PUBLIC_CTF_CONTRACT_ADDRESS
+                            mockConditionalTokens
                           </span>{" "}
-                          (and select a vault with Envio{" "}
+                          in config/contracts.ts (and select a vault with Envio{" "}
                           <span className="font-mono text-foreground">
                             CPFDeploymentInfo
                           </span>{" "}
