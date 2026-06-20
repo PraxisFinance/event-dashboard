@@ -24,6 +24,13 @@ export interface PredictionEvent {
   createdAt: string;
   updatedAt: string;
   syncedAt: string | null;
+  // Typed market fields
+  category: string | null;
+  resolutionType: string | null;
+  sideALabel: string | null;
+  sideBLabel: string | null;
+  metadata: Record<string, unknown> | null;
+  logoPath: string | null;
 }
 
 export function formatVolume(value: number): string {

@@ -22,6 +22,13 @@ export type EventRowInput = {
   createdAt: Date | string;
   updatedAt: Date | string;
   syncedAt: Date | string | null;
+  // Typed market fields
+  category: string | null;
+  resolutionType: string | null;
+  sideALabel: string | null;
+  sideBLabel: string | null;
+  metadata: unknown;
+  logoPath: string | null;
 };
 
 function asSource(value: string): EventSource {
@@ -60,5 +67,11 @@ export function mapDbEventToPredictionEvent(row: EventRowInput): PredictionEvent
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
     syncedAt: row.syncedAt ? toIso(row.syncedAt) : null,
+    category: row.category ?? null,
+    resolutionType: row.resolutionType ?? null,
+    sideALabel: row.sideALabel ?? null,
+    sideBLabel: row.sideBLabel ?? null,
+    metadata: (row.metadata as Record<string, unknown>) ?? null,
+    logoPath: row.logoPath ?? null,
   };
 }

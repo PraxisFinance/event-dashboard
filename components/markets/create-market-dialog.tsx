@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { isAddress } from "viem";
 import {
   DEFAULT_INITIAL_LIQUIDITY_USDC,
@@ -22,11 +22,7 @@ import { useBackendAuth } from "@/hooks/use-backend-auth";
 import { Input } from "@/components/ui/primitives/input";
 import { Label } from "@/components/ui/primitives/label";
 import { Textarea } from "@/components/ui/primitives/textarea";
-import {
-  arrayToInput,
-  inputToArray,
-  MarketMetadataFields,
-} from "@/components/markets/market-metadata-fields";
+import { arrayToInput, inputToArray } from "@/components/markets/market-metadata-fields";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -37,9 +33,20 @@ import {
 import { useVaultStore } from "@/lib/stores/vault-store";
 import type { VaultState } from "@/lib/envio";
 import type { Address } from "viem";
-
-export const EVENT_TYPES = ["crypto", "sport", "esport", "finance", "tech"] as const;
-export type EventType = (typeof EVENT_TYPES)[number];
+import {
+  CATEGORIES,
+  FIXED_RESOLUTION,
+  RESOLUTION_TYPES,
+  isMetadataComplete,
+  type Category,
+  type EventMetadata,
+  type ResolutionType,
+} from "@/lib/types/event-market";
+import { deriveMetadataFromSource } from "@/lib/utils/derive-source-metadata";
+import { EventBaseFields } from "./event-base-fields";
+import { EventCategoryFields } from "./category-fields";
+import { EventResolutionFields } from "./event-resolution-fields";
+import type { PriceOracleMetadata, SourceSubMarket } from "@/types/source-market";
 
 export interface CreateMarketEvent {
   id: string;
@@ -52,11 +59,25 @@ export interface CreateMarketEvent {
   categories?: string[];
   tags?: string[];
   marketType?: string | null;
-  eventType?: EventType | null;
   slug?: string | null;
   vault?: string | null;
   /** Remote logo URL from the Source market (`logo` field). */
   logo?: string | null;
+  /** Typed market fields (populated when event already has metadata in DB). */
+  category?: string | null;
+  resolutionType?: string | null;
+  sideALabel?: string | null;
+  sideBLabel?: string | null;
+  metadata?: EventMetadata | null;
+  logoPath?: string | null;
+  /** Sub-markets for group events (provides per-team images). */
+  markets?: SourceSubMarket[];
+  /** Raw source metadata (contains esportTitle, homeTeam, type:"ladder", etc.). */
+  sourceMetadata?: Record<string, unknown>;
+  /** Oracle metadata present on single price-oracle markets. */
+  priceOracleMetadata?: PriceOracleMetadata;
+  /** Formatted expiration date string, e.g. "Jun 23, 2026". */
+  expirationDate?: string;
 }
 
 interface CreateMarketDialogProps {
@@ -105,25 +126,28 @@ export function CreateMarketDialog({
   const [editTags, setEditTags] = useState("");
   const [editExpirationInput, setEditExpirationInput] = useState("");
   const [editMarketType, setEditMarketType] = useState("");
-  const [editEventType, setEditEventType] = useState<EventType | null>(null);
   const [editSlug, setEditSlug] = useState("");
   const [votingDeadlineInput, setVotingDeadlineInput] = useState("");
-  const [resolutionTypeTuple, setResolutionTypeTuple] = useState<string | null>(
-    null,
-  );
+
+  // Typed market fields
+  const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [editResolutionType, setEditResolutionType] = useState<ResolutionType | null>(null);
+  const [editSideALabel, setEditSideALabel] = useState("");
+  const [editSideBLabel, setEditSideBLabel] = useState("");
+  const [editMetadata, setEditMetadata] = useState<EventMetadata>({});
+
+  const patchMetadata = useCallback((patch: Partial<EventMetadata>) => {
+    setEditMetadata((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   useEffect(() => {
     if (!open || !event) return;
+
     setEditTitle(event.title);
     setEditDescription(event.description ?? "");
     setEditCategories(arrayToInput(event.categories));
     setEditTags(arrayToInput(event.tags));
     setEditMarketType(event.marketType ?? "");
-    setEditEventType(
-      EVENT_TYPES.includes(event.eventType as EventType)
-        ? (event.eventType as EventType)
-        : null,
-    );
     setEditSlug(event.slug ?? "");
 
     const expTs = normaliseTs(event.expirationTimestamp);
@@ -133,6 +157,35 @@ export function CreateMarketDialog({
     } else {
       setEditExpirationInput("");
       setVotingDeadlineInput("");
+    }
+
+    // ── Typed market fields ────────────────────────────────────────────────
+    // If the event already has saved values (from DB), prefer those.
+    // Otherwise, derive defaults from the Source response.
+    const storedCat = CATEGORIES.includes(event.category as Category)
+      ? (event.category as Category)
+      : null;
+    const storedRt = RESOLUTION_TYPES.includes(event.resolutionType as ResolutionType)
+      ? (event.resolutionType as ResolutionType)
+      : null;
+    const hasStoredMetadata = storedCat !== null;
+
+    if (hasStoredMetadata) {
+      // Use persisted DB values as-is
+      const fixedRt = storedCat ? FIXED_RESOLUTION[storedCat] : undefined;
+      setEditCategory(storedCat);
+      setEditResolutionType(storedRt ?? fixedRt ?? null);
+      setEditSideALabel(event.sideALabel ?? "");
+      setEditSideBLabel(event.sideBLabel ?? "");
+      setEditMetadata((event.metadata as EventMetadata) ?? {});
+    } else {
+      // Derive from the Source event payload
+      const derived = deriveMetadataFromSource(event);
+      setEditCategory(derived.category);
+      setEditResolutionType(derived.resolutionType);
+      setEditSideALabel(derived.sideALabel);
+      setEditSideBLabel(derived.sideBLabel);
+      setEditMetadata(derived.metadata);
     }
   }, [open, event]);
 
@@ -213,6 +266,14 @@ export function CreateMarketDialog({
     editedExpirationTs && !Number.isNaN(editedExpirationTs),
   );
 
+  const metadataReady = isMetadataComplete(
+    editCategory,
+    editResolutionType,
+    editSideALabel,
+    editSideBLabel,
+    editMetadata,
+  );
+
   const canSubmitOnChain = Boolean(
     poolFactory &&
     poolTokenConfigured &&
@@ -220,7 +281,8 @@ export function CreateMarketDialog({
     ytAddress &&
     vaultContractAddress &&
     hasConditionId &&
-    hasExpiration,
+    hasExpiration &&
+    metadataReady,
   );
 
   const handleCreate = async () => {
@@ -251,6 +313,12 @@ export function CreateMarketDialog({
       if (!votingDeadlineInput) throw new Error("Voting deadline is required.");
       if (!vaultContractAddress)
         throw new Error("No vault contract address available. Select an indexed vault.");
+      if (!editCategory) throw new Error("Category is required.");
+      if (!editResolutionType) throw new Error("Resolution type is required.");
+      if (!editSideALabel.trim() || !editSideBLabel.trim())
+        throw new Error("Side A and Side B labels are required.");
+      if (!metadataReady)
+        throw new Error("Fill all required fields for the selected category before deploying.");
 
       const votingDeadlineTs = Math.floor(
         new Date(votingDeadlineInput).getTime() / 1000,
@@ -286,9 +354,12 @@ export function CreateMarketDialog({
             categories: inputToArray(editCategories),
             tags: inputToArray(editTags),
             marketType: editMarketType || null,
-            eventType: editEventType ?? null,
             slug: editSlug || null,
-            resolutionTypeTuple: resolutionTypeTuple ?? null,
+            category: editCategory,
+            resolutionType: editResolutionType,
+            sideALabel: editSideALabel,
+            sideBLabel: editSideBLabel,
+            metadata: editMetadata,
             cpfAddress: poolFactory,
             vault: vaultAddress || null,
           }),
@@ -313,7 +384,6 @@ export function CreateMarketDialog({
       setTxHash(undefined);
       setIsSuccess(false);
       setVotingDeadlineInput("");
-      setResolutionTypeTuple(null);
     }, 300);
   };
 
@@ -396,7 +466,7 @@ export function CreateMarketDialog({
                 )}
               </div>
 
-              {/* ── Editable fields ── */}
+              {/* ── Core fields ── */}
               <div className="flex flex-col gap-4 rounded-lg border border-border bg-secondary/30 p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Market Parameters
@@ -484,51 +554,6 @@ export function CreateMarketDialog({
                   </div>
                 )}
 
-                {/* Event Type */}
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs font-medium">
-                    Event Type
-                    <span className="text-red-400 ml-0.5">*</span>
-                  </Label>
-                  <div className="flex flex-wrap gap-2">
-                    {EVENT_TYPES.map((type) => {
-                      const selected = editEventType === type;
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          disabled={isLoading}
-                          onClick={() =>
-                            setEditEventType(selected ? null : type)
-                          }
-                          className={[
-                            "rounded-md border px-3 py-1.5 text-[11px] font-semibold capitalize transition-colors",
-                            "disabled:opacity-50 disabled:cursor-not-allowed",
-                            selected
-                              ? "border-brand-blue bg-brand-blue/10 text-foreground"
-                              : "border-border bg-secondary/30 text-muted-foreground hover:border-border/80 hover:bg-secondary/60",
-                          ].join(" ")}
-                        >
-                          {type}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <MarketMetadataFields
-                  idPrefix="edit"
-                  categories={editCategories}
-                  tags={editTags}
-                  marketType={editMarketType}
-                  resolutionTypeTuple={resolutionTypeTuple}
-                  onCategoriesChange={setEditCategories}
-                  onTagsChange={setEditTags}
-                  onMarketTypeChange={setEditMarketType}
-                  onResolutionTypeTupleChange={setResolutionTypeTuple}
-                  disabled={isLoading}
-                />
-
                 {/* Slug */}
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="edit-slug" className="text-xs font-medium">
@@ -588,6 +613,58 @@ export function CreateMarketDialog({
                 </div>
               </div>
 
+              {/* ── Typed market fields ── */}
+              <div className="flex flex-col gap-4 rounded-lg border border-border bg-secondary/30 p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Market Type & Resolution
+                  <span className="text-red-400 ml-1">*</span>
+                </p>
+                <EventBaseFields
+                  category={editCategory}
+                  resolutionType={editResolutionType}
+                  sideALabel={editSideALabel}
+                  sideBLabel={editSideBLabel}
+                  onCategoryChange={setEditCategory}
+                  onResolutionTypeChange={setEditResolutionType}
+                  onSideALabelChange={setEditSideALabel}
+                  onSideBLabelChange={setEditSideBLabel}
+                  disabled={isLoading}
+                />
+              </div>
+
+              {/* Category-specific metadata */}
+              {editCategory && (
+                <div className="flex flex-col gap-4 rounded-lg border border-border bg-secondary/30 p-4">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {editCategory.charAt(0).toUpperCase() + editCategory.slice(1)} Details
+                    <span className="text-red-400 ml-1">*</span>
+                  </p>
+                  <EventCategoryFields
+                    category={editCategory}
+                    metadata={editMetadata}
+                    onMetadataChange={patchMetadata}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
+              {/* Resolution-type-specific metadata */}
+              {editResolutionType &&
+                !["up_down", "winner", "yes_no"].includes(editResolutionType) && (
+                  <div className="flex flex-col gap-4 rounded-lg border border-border bg-secondary/30 p-4">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Resolution Details
+                      <span className="text-red-400 ml-1">*</span>
+                    </p>
+                    <EventResolutionFields
+                      resolutionType={editResolutionType}
+                      metadata={editMetadata}
+                      onMetadataChange={patchMetadata}
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
+
               {/* Info banner */}
               <div className="flex gap-2.5 rounded-lg border border-border bg-secondary/30 p-3">
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -612,7 +689,7 @@ export function CreateMarketDialog({
                         <span className="font-mono text-foreground">
                           stakingToken
                         </span>{" "}
-                        = vault YT)                        . The CTF contract uses{" "}
+                        = vault YT). The CTF contract uses{" "}
                         <span className="font-mono text-foreground">
                           mockConditionalTokens
                         </span>
@@ -705,6 +782,9 @@ export function CreateMarketDialog({
                           </span>{" "}
                           — set above
                         </li>
+                      )}
+                      {!metadataReady && (
+                        <li>Complete all required market type fields above.</li>
                       )}
                     </ul>
                   </div>

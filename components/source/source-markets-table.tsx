@@ -73,6 +73,7 @@ export function toCreateMarketEvent(m: EnrichedSourceMarket): CreateMarketEvent 
     title: m.title,
     description: m.description,
     expirationTimestamp: m.expirationTimestamp,
+    expirationDate: m.expirationDate,
     source: "source",
     conditionId: m.conditionId,
     categories: m.categories,
@@ -80,6 +81,9 @@ export function toCreateMarketEvent(m: EnrichedSourceMarket): CreateMarketEvent 
     marketType: m.marketType,
     slug: m.slug,
     logo: m.logo ?? null,
+    markets: m.markets,
+    sourceMetadata: m.metadata,
+    priceOracleMetadata: m.priceOracleMetadata,
   };
 }
 

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Header } from "@/components/layout/header";
 import { CreateMarketDialog } from "@/components/markets/create-market-dialog";
+import { EditEventMetadataDialog } from "@/components/markets/edit-event-metadata-dialog";
 import { Badge } from "@/components/ui/primitives/badge";
 import { Button } from "@/components/ui/primitives/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/layout/card";
@@ -26,6 +27,7 @@ import {
   Calendar,
   Clock,
   Tag,
+  Pencil,
 } from "lucide-react";
 
 function StatusBadge({ status }: { status: string }) {
@@ -90,6 +92,7 @@ export function EventDetailPage({
   const { status } = useSession();
   const utils = trpc.useUtils();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editMetaOpen, setEditMetaOpen] = useState(false);
 
   const { data: row, isLoading, isError, error } = trpc.events.byId.useQuery(
     { id },
@@ -330,6 +333,16 @@ export function EventDetailPage({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
+                  {/* Edit metadata — always available */}
+                  <Button
+                    variant="outline"
+                    className="w-full gap-1.5 border-border text-muted-foreground hover:text-foreground"
+                    onClick={() => setEditMetaOpen(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit Metadata
+                  </Button>
+
                   {event.onPlatform ? (
                     <>
                       {event.contractTxHash ? (
@@ -421,6 +434,15 @@ export function EventDetailPage({
         onPromoted={() => {
           void utils.events.byId.invalidate({ id });
           void utils.events.list.invalidate();
+        }}
+      />
+
+      <EditEventMetadataDialog
+        event={event}
+        open={editMetaOpen}
+        onOpenChange={setEditMetaOpen}
+        onSaved={() => {
+          void utils.events.byId.invalidate({ id });
         }}
       />
     </>

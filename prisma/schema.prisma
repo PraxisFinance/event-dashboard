@@ -33,6 +33,12 @@ model Event {
   logoPath            String?
   cpfAddress          String?
   resolutionStatus    String?
+  eventType           String?
+  category            String?
+  resolutionType      String?
+  sideALabel          String?
+  sideBLabel          String?
+  metadata            Json?
 }
 
 model Admin {
@@ -61,9 +67,9 @@ model CachedMarket {
   volume              Float
   liquidity           Float
   expirationTimestamp Float
-  createdAt           DateTime?
-  stableSlug          String?
   data                Json
+  stableSlug          String?
+  createdAt           DateTime?
 
   @@index([tradeType])
   @@index([volume(sort: Desc)])
@@ -86,23 +92,23 @@ model Subscription {
   active                      Boolean   @default(true)
   lastTriggeredAt             DateTime?
   lastDeployedSourceId        Int?
-  lastDeployedSlug            String?
-  lastDeployedMarketCreatedAt DateTime?
   lastCreatedEventId          String?
   lastDeployTxHash            String?
   lastError                   String?
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
+  lastDeployedMarketCreatedAt DateTime?
+  lastDeployedSlug            String?
 }
 
 model WorkerState {
   key                       String    @id
-  lastSourceMarketCreatedAt DateTime?
   lastRunAt                 DateTime?
   lastSuccessAt             DateTime?
   lastError                 String?
   createdAt                 DateTime  @default(now())
   updatedAt                 DateTime  @updatedAt
+  lastSourceMarketCreatedAt DateTime?
 }
 
 model CacheMetadata {
@@ -112,18 +118,21 @@ model CacheMetadata {
 }
 
 model TwoPoolContract {
-  id          String   @id @default(uuid())
-  address     String   @unique
-  name        String
-  description String?
-  vault       String
-  yt          String?
-  curve       String
-  targetRate  String
-  startTime   DateTime
-  endTime     DateTime
-  txHash      String?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(uuid())
+  address       String   @unique
+  name          String
+  description   String?
+  vault         String
+  yt            String?
+  curve         String
+  targetRate    String
+  startTime     DateTime
+  endTime       DateTime
+  txHash        String?
+  createdAt     DateTime @default(now())
+  alpha         String?
+  feePercentage String?
+  treasury      String?
 }
 
 model UserActivity {
@@ -165,6 +174,63 @@ model UserPortfolioPoint {
 
   @@unique([userAddress, bucketDate])
   @@index([userAddress, bucketTs])
+}
+
+model GasDrip {
+  id        String   @id
+  address   String   @unique
+  ip        String
+  txHash    String?
+  amountWei String
+  createdAt DateTime @default(now())
+
+  @@index([ip])
+}
+
+model GasFaucetClaim {
+  id        String   @id
+  address   String   @unique
+  ip        String
+  txHash    String?
+  amountWei String
+  createdAt DateTime @default(now())
+
+  @@index([ip])
+}
+
+model Referral {
+  id              String    @id
+  referrerAddress String
+  refereeAddress  String    @unique
+  code            String
+  status          String    @default("pending")
+  createdAt       DateTime  @default(now())
+  qualifiedAt     DateTime?
+
+  @@index([referrerAddress, status])
+}
+
+model ReferralCode {
+  code         String   @id
+  ownerAddress String   @unique
+  createdAt    DateTime @default(now())
+}
+
+model UserAchievementState {
+  id            String    @id
+  walletAddress String
+  achievementId String
+  status        String    @default("in_progress")
+  currentValue  Int       @default(0)
+  targetValue   Int?
+  xpAwarded     Int       @default(0)
+  completedAt   DateTime?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+
+  @@unique([walletAddress, achievementId])
+  @@index([walletAddress])
 }
 
 enum EventStatus {
