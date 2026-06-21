@@ -20,6 +20,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { CreateVaultDialog } from "@/components/vaults/create-vault-dialog";
 import { useBackendAuth } from "@/hooks/use-backend-auth";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function shortAddr(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
@@ -39,6 +41,17 @@ function formatBigInt(raw: string, decimals = 6): string {
   } catch {
     return raw;
   }
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <span className="text-foreground text-xs font-medium tabular-nums">{value}</span>
+    </div>
+  );
 }
 
 function VaultCard({
@@ -62,7 +75,6 @@ function VaultCard({
           : "border-border hover:border-border/80"
       }`}
     >
-      {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -75,7 +87,6 @@ function VaultCard({
               {shortAddr(vault.id)}
               <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </a>
-
             {vault.isPaused && (
               <Badge className="bg-red-950/40 text-red-400 border-red-900/40 text-xs font-normal">
                 Paused
@@ -91,7 +102,6 @@ function VaultCard({
               </Badge>
             )}
           </div>
-
           <p className="text-xs text-muted-foreground">
             Matures{" "}
             {isExpired
@@ -116,7 +126,6 @@ function VaultCard({
         </Button>
       </div>
 
-      {/* Token addresses */}
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div className="flex flex-col gap-0.5">
           <span className="text-muted-foreground font-medium">PT</span>
@@ -144,25 +153,12 @@ function VaultCard({
         </div>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1 border-t border-border">
-        <Stat
-          label="Total Balance"
-          value={`${formatBigInt(vault.totalBalance)} PT`}
-        />
-        <Stat
-          label="Total Deposited"
-          value={`${formatBigInt(vault.totalDeposited)} USDC`}
-        />
-        <Stat
-          label="Yield Paid"
-          value={`${formatBigInt(vault.totalYieldPaid)} YT`}
-        />
+        <Stat label="Total Balance" value={`${formatBigInt(vault.totalBalance)} PT`} />
+        <Stat label="Total Deposited" value={`${formatBigInt(vault.totalDeposited)} USDC`} />
+        <Stat label="Yield Paid" value={`${formatBigInt(vault.totalYieldPaid)} YT`} />
         <Stat label="Depositors" value={vault.uniqueDepositors.toString()} />
-        <Stat
-          label="Last Updated"
-          value={formatDistanceToNow(lastUpdated, { addSuffix: true })}
-        />
+        <Stat label="Last Updated" value={formatDistanceToNow(lastUpdated, { addSuffix: true })} />
         <div className="flex flex-col gap-0.5">
           <span className="text-muted-foreground text-xs">Owner</span>
           <a
@@ -180,16 +176,197 @@ function VaultCard({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function VaultsPageHeader({
+  isFetching,
+  onDeploy,
+  onRefresh,
+}: {
+  isFetching: boolean;
+  onDeploy: () => void;
+  onRefresh: () => void;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <span className="text-foreground text-xs font-medium tabular-nums">
-        {value}
-      </span>
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground">Vaults</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Praxis vaults indexed via Envio. Select one to use as the default in RYD and Two-Pool
+          deployments.
+        </p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <Button
+          size="sm"
+          className="h-8 gap-1.5 text-xs bg-foreground text-background hover:bg-foreground/90"
+          onClick={onDeploy}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Deploy
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs border-border text-muted-foreground hover:text-foreground"
+          onClick={onRefresh}
+          disabled={isFetching}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </div>
     </div>
   );
 }
+
+function ActiveVaultBanner({
+  vaultId,
+  onClear,
+}: {
+  vaultId: string;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-brand-green/30 bg-brand-green/5 px-4 py-3">
+      <div className="flex items-center gap-2">
+        <CheckCircle2 className="h-4 w-4 text-brand-green shrink-0" />
+        <div>
+          <p className="text-xs font-medium text-foreground">Active vault</p>
+          <p className="text-xs font-mono text-muted-foreground">{vaultId}</p>
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 text-xs text-muted-foreground hover:text-foreground"
+        onClick={onClear}
+      >
+        Clear
+      </Button>
+    </div>
+  );
+}
+
+function VaultsSummaryCards({
+  vaults,
+  isLoading,
+}: {
+  vaults: VaultState[];
+  isLoading: boolean;
+}) {
+  const activeCount = vaults.filter(
+    (v) => !v.isPaused && Number(v.maturity) * 1000 > Date.now(),
+  ).length;
+  const totalDepositors = vaults.reduce((s, v) => s + v.uniqueDepositors, 0);
+
+  const cards = [
+    { label: "Total Vaults", value: vaults.length, desc: "Indexed from chain" },
+    { label: "Active", value: activeCount, desc: "Not paused, not expired" },
+    { label: "Depositors", value: totalDepositors.toLocaleString(), desc: "Unique across all vaults" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {cards.map((card) => (
+        <Card key={card.label} className="bg-card border-border p-6">
+          {isLoading ? (
+            <div className="h-8 w-12 bg-secondary rounded mb-2 animate-pulse" />
+          ) : (
+            <p className="text-3xl font-bold text-foreground tabular-nums">{card.value}</p>
+          )}
+          <p className="text-sm font-medium text-foreground mt-1">{card.label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{card.desc}</p>
+        </Card>
+      ))}
+      <Card className="bg-card border-border p-6">
+        <div className="flex items-center gap-2 h-8">
+          <Vault className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <p className="text-sm font-medium text-foreground mt-1">Envio Indexed</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Real-time state</p>
+      </Card>
+    </div>
+  );
+}
+
+function VaultsContent({
+  vaults,
+  isLoading,
+  isFetching,
+  error,
+  selectedVaultId,
+  onSelect,
+  onRetry,
+}: {
+  vaults: VaultState[];
+  isLoading: boolean;
+  isFetching: boolean;
+  error: Error | null;
+  selectedVaultId: string | undefined;
+  onSelect: (vault: VaultState) => void;
+  onRetry: () => void;
+}) {
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-border bg-card flex flex-col items-center justify-center py-20 gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Loading vaults from indexer…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-900/40 bg-red-950/20 flex flex-col items-center justify-center py-20 gap-2">
+        <p className="text-sm font-medium text-red-400">Failed to load vaults</p>
+        <p className="text-xs text-red-400/70">{error.message}</p>
+        {error.message.includes("ENVIO_INDEXER_URL") && (
+          <p className="text-xs text-red-400/50 mt-1">
+            Set <code className="font-mono">ENVIO_INDEXER_URL</code> in your environment.
+          </p>
+        )}
+        {(error.message.includes("re-authenticate") ||
+          error.message.includes("sign in") ||
+          error.message.includes("401")) && (
+          <Button
+            size="sm"
+            className="mt-2 h-8 text-xs"
+            onClick={onRetry}
+            disabled={isFetching}
+          >
+            {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+            Sign in & retry
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  if (vaults.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-sm font-medium text-foreground">No vaults indexed yet</p>
+        <p className="text-xs text-muted-foreground">
+          The Envio indexer returned an empty result.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {vaults.map((vault) => (
+        <VaultCard
+          key={vault.id}
+          vault={vault}
+          isSelected={selectedVaultId === vault.id}
+          onSelect={() => onSelect(vault)}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Page root ────────────────────────────────────────────────────────────────
 
 export function VaultsPage() {
   const [data, setData] = useState<VaultState[] | undefined>();
@@ -215,11 +392,7 @@ export function VaultsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void fetchVaults();
-  }, [fetchVaults]);
-
-  const refetch = fetchVaults;
+  useEffect(() => { void fetchVaults(); }, [fetchVaults]);
 
   const { selectedVault, setSelectedVault } = useVaultStore();
   const [createOpen, setCreateOpen] = useState(false);
@@ -235,199 +408,36 @@ export function VaultsPage() {
       isPaused: vault.isPaused,
       owner: vault.owner,
     };
-    if (selectedVault?.id === vault.id) {
-      setSelectedVault(null);
-    } else {
-      setSelectedVault(next);
-    }
+    setSelectedVault(selectedVault?.id === vault.id ? null : next);
   };
 
   return (
     <>
-      <CreateVaultDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={() => refetch()}
-      />
+      <CreateVaultDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={fetchVaults} />
       <Header />
       <main className="pt-14 min-h-screen bg-background">
         <div className="max-w-screen-2xl mx-auto px-4 md:px-6 py-6 flex flex-col gap-6">
-          {/* Heading */}
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Vaults</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Praxis vaults indexed via Envio. Select one to use as the
-                default in RYD and Two-Pool deployments.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                className="h-8 gap-1.5 text-xs bg-foreground text-background hover:bg-foreground/90"
-                onClick={() => setCreateOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Deploy
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs border-border text-muted-foreground hover:text-foreground"
-                onClick={() => refetch()}
-                disabled={isFetching}
-              >
-                <RefreshCw
-                  className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          {/* Selected vault banner */}
+          <VaultsPageHeader
+            isFetching={isFetching}
+            onDeploy={() => setCreateOpen(true)}
+            onRefresh={fetchVaults}
+          />
           {selectedVault && (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-brand-green/30 bg-brand-green/5 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-brand-green shrink-0" />
-                <div>
-                  <p className="text-xs font-medium text-foreground">
-                    Active vault
-                  </p>
-                  <p className="text-xs font-mono text-muted-foreground">
-                    {selectedVault.id}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setSelectedVault(null)}
-              >
-                Clear
-              </Button>
-            </div>
+            <ActiveVaultBanner
+              vaultId={selectedVault.id}
+              onClear={() => setSelectedVault(null)}
+            />
           )}
-
-          {/* Summary cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-card border-border p-6">
-              {isLoading ? (
-                <div className="h-8 w-12 bg-secondary rounded mb-2 animate-pulse" />
-              ) : (
-                <p className="text-3xl font-bold text-foreground tabular-nums">
-                  {vaults.length}
-                </p>
-              )}
-              <p className="text-sm font-medium text-foreground mt-1">
-                Total Vaults
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Indexed from chain
-              </p>
-            </Card>
-            <Card className="bg-card border-border p-6">
-              {isLoading ? (
-                <div className="h-8 w-12 bg-secondary rounded mb-2 animate-pulse" />
-              ) : (
-                <p className="text-3xl font-bold text-foreground tabular-nums">
-                  {
-                    vaults.filter(
-                      (v) =>
-                        !v.isPaused && Number(v.maturity) * 1000 > Date.now(),
-                    ).length
-                  }
-                </p>
-              )}
-              <p className="text-sm font-medium text-foreground mt-1">Active</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Not paused, not expired
-              </p>
-            </Card>
-            <Card className="bg-card border-border p-6">
-              {isLoading ? (
-                <div className="h-8 w-12 bg-secondary rounded mb-2 animate-pulse" />
-              ) : (
-                <p className="text-3xl font-bold text-foreground tabular-nums">
-                  {vaults
-                    .reduce((s, v) => s + v.uniqueDepositors, 0)
-                    .toLocaleString()}
-                </p>
-              )}
-              <p className="text-sm font-medium text-foreground mt-1">
-                Depositors
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Unique across all vaults
-              </p>
-            </Card>
-            <Card className="bg-card border-border p-6">
-              <div className="flex items-center gap-2 h-8">
-                <Vault className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-foreground mt-1">
-                Envio Indexed
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Real-time state
-              </p>
-            </Card>
-          </div>
-
-          {/* Content */}
-          {isLoading ? (
-            <div className="rounded-lg border border-border bg-card flex flex-col items-center justify-center py-20 gap-3">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Loading vaults from indexer…
-              </p>
-            </div>
-          ) : error ? (
-            <div className="rounded-lg border border-red-900/40 bg-red-950/20 flex flex-col items-center justify-center py-20 gap-2">
-              <p className="text-sm font-medium text-red-400">
-                Failed to load vaults
-              </p>
-              <p className="text-xs text-red-400/70">{error.message}</p>
-              {error.message.includes("ENVIO_INDEXER_URL") && (
-                <p className="text-xs text-red-400/50 mt-1">
-                  Set <code className="font-mono">ENVIO_INDEXER_URL</code> in
-                  your environment.
-                </p>
-              )}
-              {(error.message.includes("re-authenticate") || error.message.includes("sign in") || error.message.includes("401")) && (
-                <Button
-                  size="sm"
-                  className="mt-2 h-8 text-xs"
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                >
-                  {isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                  Sign in & retry
-                </Button>
-              )}
-            </div>
-          ) : vaults.length === 0 ? (
-            <div className="rounded-lg border border-border bg-card flex flex-col items-center justify-center py-20 gap-3">
-              <p className="text-sm font-medium text-foreground">
-                No vaults indexed yet
-              </p>
-              <p className="text-xs text-muted-foreground">
-                The Envio indexer returned an empty result.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {vaults.map((vault) => (
-                <VaultCard
-                  key={vault.id}
-                  vault={vault}
-                  isSelected={selectedVault?.id === vault.id}
-                  onSelect={() => handleSelect(vault)}
-                />
-              ))}
-            </div>
-          )}
+          <VaultsSummaryCards vaults={vaults} isLoading={isLoading} />
+          <VaultsContent
+            vaults={vaults}
+            isLoading={isLoading}
+            isFetching={isFetching}
+            error={error}
+            selectedVaultId={selectedVault?.id}
+            onSelect={handleSelect}
+            onRetry={fetchVaults}
+          />
         </div>
       </main>
     </>
