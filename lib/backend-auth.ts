@@ -26,7 +26,7 @@ export async function loginToBackend(
     '/auth/verify',
     {
       method: 'POST',
-      body: JSON.stringify({ message: JSON.stringify(message), signature }),
+      body: JSON.stringify({ message: prepared, signature }),
     },
   )
 
