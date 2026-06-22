@@ -13,9 +13,9 @@ export function getTwoPoolDefaultCurveAddress(): Address {
   return deployment.twoPoolRegistry;
 }
 
-/** Default treasury address for fee collection. */
-export function getTwoPoolDefaultTreasury(): Address | undefined {
-  return parseAddress(process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_TREASURY);
+/** Default treasury address for fee collection. Falls back to protocolTreasury. */
+export function getTwoPoolDefaultTreasury(): Address {
+  return parseAddress(process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_TREASURY) ?? deployment.protocolTreasury;
 }
 
 /**

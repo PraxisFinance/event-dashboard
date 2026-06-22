@@ -340,7 +340,7 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
   const [startTimeInput, setStartTimeInput] = useState(defaultStart);
   const [endTimeInput, setEndTimeInput] = useState(defaultEnd);
   const [alphaInput, setAlphaInput] = useState(getTwoPoolDefaultAlpha());
-  const [treasuryInput, setTreasuryInput] = useState<string>(getTwoPoolDefaultTreasury() ?? "");
+  const [treasuryInput, setTreasuryInput] = useState<string>(getTwoPoolDefaultTreasury());
   const [feePercentageInput, setFeePercentageInput] = useState(getTwoPoolDefaultFeePercentage());
   const [initialLiquidityYtInput, setInitialLiquidityYtInput] = useState(getTwoPoolDefaultSeedAmount());
   const [error, setError] = useState<string | null>(null);
