@@ -130,24 +130,20 @@ function AddressFields({
   vault,
   curve,
   treasuryInput,
-  feeRouterInput,
   isLoading,
   selectedVault,
   onVaultChange,
   onCurveChange,
   onTreasuryChange,
-  onFeeRouterChange,
 }: {
   vault: string;
   curve: string;
   treasuryInput: string;
-  feeRouterInput: string;
   isLoading: boolean;
   selectedVault: { id: string } | null;
   onVaultChange: (v: string) => void;
   onCurveChange: (v: string) => void;
   onTreasuryChange: (v: string) => void;
-  onFeeRouterChange: (v: string) => void;
 }) {
   return (
     <>
@@ -192,40 +188,21 @@ function AddressFields({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs font-medium">
-            Treasury address *{" "}
-            <span className="font-normal text-muted-foreground">(receives protocol fees)</span>
-          </Label>
-          <Input
-            value={treasuryInput}
-            onChange={(e) => onTreasuryChange(e.target.value)}
-            placeholder="0x…"
-            className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-            disabled={isLoading}
-          />
-          {treasuryInput && !isAddress(treasuryInput) && (
-            <p className="text-xs text-red-400">Invalid address</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs font-medium">
-            Fee Router{" "}
-            <span className="font-normal text-muted-foreground">optional</span>
-          </Label>
-          <Input
-            value={feeRouterInput}
-            onChange={(e) => onFeeRouterChange(e.target.value)}
-            placeholder="0x…"
-            className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-            disabled={isLoading}
-          />
-          {feeRouterInput && !isAddress(feeRouterInput) && (
-            <p className="text-xs text-red-400">Invalid address</p>
-          )}
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium">
+          Treasury address *{" "}
+          <span className="font-normal text-muted-foreground">(receives protocol fees)</span>
+        </Label>
+        <Input
+          value={treasuryInput}
+          onChange={(e) => onTreasuryChange(e.target.value)}
+          placeholder="0x…"
+          className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+          disabled={isLoading}
+        />
+        {treasuryInput && !isAddress(treasuryInput) && (
+          <p className="text-xs text-red-400">Invalid address</p>
+        )}
       </div>
     </>
   );
@@ -382,7 +359,6 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
   const [startTimeInput, setStartTimeInput] = useState(defaultStart);
   const [endTimeInput, setEndTimeInput] = useState(defaultEnd);
   const [bufferInput, setBufferInput] = useState(getTwoPoolDefaultBuffer());
-  const [feeRouterInput, setFeeRouterInput] = useState("");
   const [openingPriceStableInput, setOpeningPriceStableInput] = useState("");
   const [treasuryInput, setTreasuryInput] = useState<string>(getTwoPoolDefaultTreasury());
   const [feePercentageInput, setFeePercentageInput] = useState(getTwoPoolDefaultFeePercentage());
@@ -431,7 +407,6 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
       try { BigInt(bufferInput.trim()); } catch { throw new Error("Buffer must be a valid integer (uint256)."); }
       try { BigInt(feePercentageInput.trim()); } catch { throw new Error("Fee percentage must be a valid integer (uint256)."); }
       try { BigInt(initialLiquidityYtInput.trim()); } catch { throw new Error("Initial liquidity must be a valid integer (uint256)."); }
-      if (feeRouterInput.trim() && !isAddress(feeRouterInput.trim())) throw new Error("Fee Router must be a valid address.");
       if (openingPriceStableInput.trim()) {
         try { BigInt(openingPriceStableInput.trim()); } catch { throw new Error("Opening Stable Price must be a valid integer (uint256)."); }
       }
@@ -461,7 +436,6 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
             treasury: treasuryInput.trim(),
             feePercentage: feePercentageInput.trim(),
             initialLiquidityYt: initialLiquidityYtInput.trim(),
-            ...(feeRouterInput.trim() ? { feeRouter: feeRouterInput.trim() } : {}),
             ...(openingPriceStableInput.trim() ? { openingPriceStable: openingPriceStableInput.trim() } : {}),
           }),
         },
@@ -506,13 +480,11 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
                 vault={vault}
                 curve={curve}
                 treasuryInput={treasuryInput}
-                feeRouterInput={feeRouterInput}
                 isLoading={isLoading}
                 selectedVault={selectedVault}
                 onVaultChange={setVault}
                 onCurveChange={setCurve}
                 onTreasuryChange={setTreasuryInput}
-                onFeeRouterChange={setFeeRouterInput}
               />
 
               <PoolParameterFields
