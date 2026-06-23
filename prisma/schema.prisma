@@ -130,9 +130,10 @@ model TwoPoolContract {
   endTime       DateTime
   txHash        String?
   createdAt     DateTime @default(now())
-  alpha         String?
+  buffer        String?
   feePercentage String?
   treasury      String?
+  feeRouter     String?
 }
 
 model UserActivity {

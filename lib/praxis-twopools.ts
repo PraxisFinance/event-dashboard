@@ -19,11 +19,15 @@ export function getTwoPoolDefaultTreasury(): Address {
 }
 
 /**
- * Default alpha as a raw uint256 string.
+ * Default buffer (φ/phi) as a raw uint256 string.
  * Controls the settlement curve shape.
  */
-export function getTwoPoolDefaultAlpha(): string {
-  return (process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_ALPHA ?? "500000000000000000").trim() || "500000000000000000";
+export function getTwoPoolDefaultBuffer(): string {
+  return (
+    process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_BUFFER ??
+    process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_ALPHA ??
+    "500000000000000000"
+  ).trim() || "500000000000000000";
 }
 
 /**

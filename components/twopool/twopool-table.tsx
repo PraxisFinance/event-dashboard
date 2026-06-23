@@ -13,6 +13,8 @@ interface TwoPoolRow {
   yt: string | null;
   curve: string;
   targetRate: string;
+  buffer: string | null;
+  feeRouter: string | null;
   startTime: Date | string;
   endTime: Date | string;
   txHash: string | null;
@@ -74,6 +76,7 @@ export function TwoPoolTable({ rows }: TwoPoolTableProps) {
             <th className="px-4 py-3 text-left font-medium text-muted-foreground">YT</th>
             <th className="px-4 py-3 text-left font-medium text-muted-foreground">Curve</th>
             <th className="px-4 py-3 text-right font-medium text-muted-foreground">Target Rate</th>
+            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Fee Router</th>
             <th className="px-4 py-3 text-left font-medium text-muted-foreground">Period</th>
             <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
             <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tx</th>
@@ -139,6 +142,15 @@ export function TwoPoolTable({ rows }: TwoPoolTableProps) {
                 {/* Target rate */}
                 <td className="px-4 py-3 text-right tabular-nums font-mono text-foreground">
                   {row.targetRate}
+                </td>
+
+                {/* Fee router */}
+                <td className="px-4 py-3">
+                  {row.feeRouter && row.feeRouter !== "0x0000000000000000000000000000000000000000" ? (
+                    <AddrLink addr={row.feeRouter} />
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
                 </td>
 
                 {/* Period */}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   getTwoPoolDefaultCurveAddress,
-  getTwoPoolDefaultAlpha,
+  getTwoPoolDefaultBuffer,
   getTwoPoolDefaultFeePercentage,
   getTwoPoolDefaultSeedAmount,
   getTwoPoolDefaultTreasury,
@@ -130,20 +130,24 @@ function AddressFields({
   vault,
   curve,
   treasuryInput,
+  feeRouterInput,
   isLoading,
   selectedVault,
   onVaultChange,
   onCurveChange,
   onTreasuryChange,
+  onFeeRouterChange,
 }: {
   vault: string;
   curve: string;
   treasuryInput: string;
+  feeRouterInput: string;
   isLoading: boolean;
   selectedVault: { id: string } | null;
   onVaultChange: (v: string) => void;
   onCurveChange: (v: string) => void;
   onTreasuryChange: (v: string) => void;
+  onFeeRouterChange: (v: string) => void;
 }) {
   return (
     <>
@@ -188,21 +192,40 @@ function AddressFields({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium">
-          Treasury address *{" "}
-          <span className="font-normal text-muted-foreground">(receives protocol fees)</span>
-        </Label>
-        <Input
-          value={treasuryInput}
-          onChange={(e) => onTreasuryChange(e.target.value)}
-          placeholder="0x…"
-          className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-          disabled={isLoading}
-        />
-        {treasuryInput && !isAddress(treasuryInput) && (
-          <p className="text-xs text-red-400">Invalid address</p>
-        )}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs font-medium">
+            Treasury address *{" "}
+            <span className="font-normal text-muted-foreground">(receives protocol fees)</span>
+          </Label>
+          <Input
+            value={treasuryInput}
+            onChange={(e) => onTreasuryChange(e.target.value)}
+            placeholder="0x…"
+            className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+            disabled={isLoading}
+          />
+          {treasuryInput && !isAddress(treasuryInput) && (
+            <p className="text-xs text-red-400">Invalid address</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs font-medium">
+            Fee Router{" "}
+            <span className="font-normal text-muted-foreground">optional</span>
+          </Label>
+          <Input
+            value={feeRouterInput}
+            onChange={(e) => onFeeRouterChange(e.target.value)}
+            placeholder="0x…"
+            className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+            disabled={isLoading}
+          />
+          {feeRouterInput && !isAddress(feeRouterInput) && (
+            <p className="text-xs text-red-400">Invalid address</p>
+          )}
+        </div>
       </div>
     </>
   );
@@ -210,32 +233,36 @@ function AddressFields({
 
 function PoolParameterFields({
   targetRateInput,
-  alphaInput,
+  bufferInput,
   feePercentageInput,
   initialLiquidityYtInput,
+  openingPriceStableInput,
   startTimeInput,
   endTimeInput,
   startTimeError,
   isLoading,
   onTargetRateChange,
-  onAlphaChange,
+  onBufferChange,
   onFeeChange,
   onLiquidityChange,
+  onOpeningPriceStableChange,
   onStartTimeChange,
   onEndTimeChange,
 }: {
   targetRateInput: string;
-  alphaInput: string;
+  bufferInput: string;
   feePercentageInput: string;
   initialLiquidityYtInput: string;
+  openingPriceStableInput: string;
   startTimeInput: string;
   endTimeInput: string;
   startTimeError: string | null;
   isLoading: boolean;
   onTargetRateChange: (v: string) => void;
-  onAlphaChange: (v: string) => void;
+  onBufferChange: (v: string) => void;
   onFeeChange: (v: string) => void;
   onLiquidityChange: (v: string) => void;
+  onOpeningPriceStableChange: (v: string) => void;
   onStartTimeChange: (v: string) => void;
   onEndTimeChange: (v: string) => void;
 }) {
@@ -257,12 +284,12 @@ function PoolParameterFields({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs font-medium">
-            Alpha{" "}
+            Buffer{" "}
             <span className="font-normal text-muted-foreground">(uint256)</span>
           </Label>
           <Input
-            value={alphaInput}
-            onChange={(e) => onAlphaChange(e.target.value)}
+            value={bufferInput}
+            onChange={(e) => onBufferChange(e.target.value)}
             placeholder="500000000000000000"
             className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
             disabled={isLoading}
@@ -299,6 +326,21 @@ function PoolParameterFields({
           />
           <p className="text-xs text-muted-foreground">Pool receives 2× total YT</p>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs font-medium">
+          Opening Stable Price (1e18){" "}
+          <span className="font-normal text-muted-foreground">optional</span>
+        </Label>
+        <Input
+          value={openingPriceStableInput}
+          onChange={(e) => onOpeningPriceStableChange(e.target.value)}
+          placeholder="500000000000000000"
+          className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
+          disabled={isLoading}
+        />
+        <p className="text-xs text-muted-foreground">Neutral = 0.5e18. Backend defaults to neutral if omitted.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -339,7 +381,9 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
   const [targetRateInput, setTargetRateInput] = useState("1000000000000000000");
   const [startTimeInput, setStartTimeInput] = useState(defaultStart);
   const [endTimeInput, setEndTimeInput] = useState(defaultEnd);
-  const [alphaInput, setAlphaInput] = useState(getTwoPoolDefaultAlpha());
+  const [bufferInput, setBufferInput] = useState(getTwoPoolDefaultBuffer());
+  const [feeRouterInput, setFeeRouterInput] = useState("");
+  const [openingPriceStableInput, setOpeningPriceStableInput] = useState("");
   const [treasuryInput, setTreasuryInput] = useState<string>(getTwoPoolDefaultTreasury());
   const [feePercentageInput, setFeePercentageInput] = useState(getTwoPoolDefaultFeePercentage());
   const [initialLiquidityYtInput, setInitialLiquidityYtInput] = useState(getTwoPoolDefaultSeedAmount());
@@ -384,9 +428,13 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
       if (!name.trim()) throw new Error("Name is required.");
 
       try { BigInt(targetRateInput.trim()); } catch { throw new Error("Target rate must be a valid integer (uint256)."); }
-      try { BigInt(alphaInput.trim()); } catch { throw new Error("Alpha must be a valid integer (uint256)."); }
+      try { BigInt(bufferInput.trim()); } catch { throw new Error("Buffer must be a valid integer (uint256)."); }
       try { BigInt(feePercentageInput.trim()); } catch { throw new Error("Fee percentage must be a valid integer (uint256)."); }
       try { BigInt(initialLiquidityYtInput.trim()); } catch { throw new Error("Initial liquidity must be a valid integer (uint256)."); }
+      if (feeRouterInput.trim() && !isAddress(feeRouterInput.trim())) throw new Error("Fee Router must be a valid address.");
+      if (openingPriceStableInput.trim()) {
+        try { BigInt(openingPriceStableInput.trim()); } catch { throw new Error("Opening Stable Price must be a valid integer (uint256)."); }
+      }
 
       const start = Math.floor(new Date(startTimeInput).getTime() / 1000);
       const end = Math.floor(new Date(endTimeInput).getTime() / 1000);
@@ -409,10 +457,12 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
             targetRate: targetRateInput.trim(),
             startTs: start,
             endTs: end,
-            alpha: alphaInput.trim(),
+            buffer: bufferInput.trim(),
             treasury: treasuryInput.trim(),
             feePercentage: feePercentageInput.trim(),
             initialLiquidityYt: initialLiquidityYtInput.trim(),
+            ...(feeRouterInput.trim() ? { feeRouter: feeRouterInput.trim() } : {}),
+            ...(openingPriceStableInput.trim() ? { openingPriceStable: openingPriceStableInput.trim() } : {}),
           }),
         },
       );
@@ -456,26 +506,30 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
                 vault={vault}
                 curve={curve}
                 treasuryInput={treasuryInput}
+                feeRouterInput={feeRouterInput}
                 isLoading={isLoading}
                 selectedVault={selectedVault}
                 onVaultChange={setVault}
                 onCurveChange={setCurve}
                 onTreasuryChange={setTreasuryInput}
+                onFeeRouterChange={setFeeRouterInput}
               />
 
               <PoolParameterFields
                 targetRateInput={targetRateInput}
-                alphaInput={alphaInput}
+                bufferInput={bufferInput}
                 feePercentageInput={feePercentageInput}
                 initialLiquidityYtInput={initialLiquidityYtInput}
+                openingPriceStableInput={openingPriceStableInput}
                 startTimeInput={startTimeInput}
                 endTimeInput={endTimeInput}
                 startTimeError={startTimeError}
                 isLoading={isLoading}
                 onTargetRateChange={setTargetRateInput}
-                onAlphaChange={setAlphaInput}
+                onBufferChange={setBufferInput}
                 onFeeChange={setFeePercentageInput}
                 onLiquidityChange={setInitialLiquidityYtInput}
+                onOpeningPriceStableChange={setOpeningPriceStableInput}
                 onStartTimeChange={setStartTimeInput}
                 onEndTimeChange={setEndTimeInput}
               />
