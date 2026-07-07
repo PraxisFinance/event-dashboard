@@ -19,6 +19,7 @@ async function queryMarketCache(
   db: PrismaClient,
   opts: {
     sortBy?: string;
+    sortOrder?: "asc" | "desc";
     tradeType?: "amm" | "clob" | "group";
     marketIds?: number[];
     page: number;
@@ -31,7 +32,7 @@ async function queryMarketCache(
 
   let orderBy: Prisma.CachedMarketOrderByWithRelationInput = { volume: "desc" };
   if (opts.sortBy === "liquidity") orderBy = { liquidity: "desc" };
-  else if (opts.sortBy === "expiry") orderBy = { expirationTimestamp: "asc" };
+  else if (opts.sortBy === "expiry") orderBy = { expirationTimestamp: opts.sortOrder ?? "asc" };
   else if (opts.sortBy === "newest") orderBy = { createdAt: "desc" };
 
   const [rows, total] = await Promise.all([
@@ -120,14 +121,15 @@ export const sourceRouter = router({
           page: z.number().int().min(1).default(1),
           limit: z.number().int().min(1).max(100).default(20),
           sortBy: z.string().optional(),
+          sortOrder: z.enum(["asc", "desc"]).optional(),
           tradeType: z.enum(["amm", "clob", "group"]).optional(),
           vaultAddress: z.string().optional(),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const { page = 1, limit = 20, sortBy, tradeType, vaultAddress } = input ?? {};
-      const { markets, total } = await queryMarketCache(ctx.db, { sortBy, tradeType, page, limit });
+      const { page = 1, limit = 20, sortBy, sortOrder, tradeType, vaultAddress } = input ?? {};
+      const { markets, total } = await queryMarketCache(ctx.db, { sortBy, sortOrder, tradeType, page, limit });
       const enriched = await enrichWithDeploymentStatus(markets, ctx.db, vaultAddress);
       return { markets: enriched, total };
     }),

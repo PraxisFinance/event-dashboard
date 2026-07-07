@@ -12,13 +12,14 @@ import {
 } from "@/components/ui/data-display/table";
 import type { EnrichedSourceMarket } from "@/types/source-market";
 import type { CreateMarketEvent } from "@/components/markets/create-market-dialog";
-import { ArrowUpDown, Bell, BellRing, CheckCircle2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Bell, BellRing, CheckCircle2 } from "lucide-react";
 
 interface SourceMarketsTableProps {
   markets: EnrichedSourceMarket[];
   onCreateMarket: (event: CreateMarketEvent) => void;
   onSubscribe?: (market: EnrichedSourceMarket) => void;
   isSortedByExpiration?: boolean;
+  expirationSortDir?: "asc" | "desc";
   onSortByExpiration?: () => void;
 }
 
@@ -98,6 +99,7 @@ export function SourceMarketsTable({
   onCreateMarket,
   onSubscribe,
   isSortedByExpiration = false,
+  expirationSortDir = "asc",
   onSortByExpiration,
 }: SourceMarketsTableProps) {
   return (
@@ -132,7 +134,15 @@ export function SourceMarketsTable({
                     onClick={onSortByExpiration}
                   >
                     Expires
-                    <ArrowUpDown className="h-3 w-3" />
+                    {isSortedByExpiration ? (
+                      expirationSortDir === "asc" ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3" />
+                    )}
                   </button>
                 ) : (
                   "Expires"

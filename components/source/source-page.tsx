@@ -222,6 +222,7 @@ function MarketsContent({
   onCreateMarket,
   onSubscribe,
   isSortedByExpiration,
+  expirationSortDir,
   onSortByExpiration,
   onClearSemantic,
   onClearFilters,
@@ -233,6 +234,7 @@ function MarketsContent({
   onCreateMarket: (event: CreateMarketEvent) => void;
   onSubscribe: (market: EnrichedSourceMarket) => void;
   isSortedByExpiration: boolean;
+  expirationSortDir: "asc" | "desc";
   onSortByExpiration: (() => void) | undefined;
   onClearSemantic: () => void;
   onClearFilters: () => void;
@@ -286,6 +288,7 @@ function MarketsContent({
       onCreateMarket={onCreateMarket}
       onSubscribe={onSubscribe}
       isSortedByExpiration={isSortedByExpiration}
+      expirationSortDir={expirationSortDir}
       onSortByExpiration={onSortByExpiration}
     />
   );
@@ -347,6 +350,7 @@ export function SourceEventsPage() {
   const [search, setSearch] = useState("");
   const [tradeType, setTradeType] = useState<TradeTypeFilter>("all");
   const [sort, setSort] = useState<SortKey>("newest");
+  const [expirationSortDir, setExpirationSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
 
   const [semanticInput, setSemanticInput] = useState("");
@@ -376,7 +380,7 @@ export function SourceEventsPage() {
 
   const { data: browseData, isLoading: browseLoading, error: browseError } =
     trpc.source.list.useQuery(
-      { limit: PAGE_SIZE, page, sortBy: apiSortBy, tradeType: tradeType === "all" ? undefined : tradeType, vaultAddress },
+      { limit: PAGE_SIZE, page, sortBy: apiSortBy, sortOrder: sort === "expiration" ? expirationSortDir : undefined, tradeType: tradeType === "all" ? undefined : tradeType, vaultAddress },
       { enabled: !isSemanticMode },
     );
 
@@ -495,7 +499,16 @@ export function SourceEventsPage() {
             onCreateMarket={(event) => { setSelectedEvent(event); setDialogOpen(true); }}
             onSubscribe={(market) => { setSubscribeTarget(market); setSubscribeDialogOpen(true); }}
             isSortedByExpiration={!isSemanticMode && sort === "expiration"}
-            onSortByExpiration={!isSemanticMode ? () => { setPage(1); setSort("expiration"); } : undefined}
+            expirationSortDir={expirationSortDir}
+            onSortByExpiration={!isSemanticMode ? () => {
+              setPage(1);
+              if (sort === "expiration") {
+                setExpirationSortDir((d) => d === "asc" ? "desc" : "asc");
+              } else {
+                setSort("expiration");
+                setExpirationSortDir("asc");
+              }
+            } : undefined}
             onClearSemantic={handleSemanticClear}
             onClearFilters={() => { setSearch(""); setTradeType("all"); setSort("newest"); setPage(1); }}
           />
