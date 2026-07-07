@@ -11,6 +11,7 @@ export interface PriceOracleMetadata {
 export interface SourceSubMarket {
   id: number;
   conditionId: string;
+  description?: string;
   title: string;
   imageUrl?: string;
   logo?: string;

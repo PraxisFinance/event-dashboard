@@ -68,14 +68,20 @@ function formatExpirationDateTime(market: EnrichedSourceMarket): string {
 }
 
 export function toCreateMarketEvent(m: EnrichedSourceMarket): CreateMarketEvent {
+  // Group/sport events have no top-level conditionId or description — those live on
+  // the individual sub-markets. Fall back to markets[0] so the dialog is pre-filled.
+  const firstSubMarket = m.markets?.[0];
+  const conditionId = m.conditionId || firstSubMarket?.conditionId || null;
+  const description = m.description || firstSubMarket?.description;
+
   return {
     id: String(m.id),
     title: m.title,
-    description: m.description,
+    description,
     expirationTimestamp: m.expirationTimestamp,
     expirationDate: m.expirationDate,
     source: "source",
-    conditionId: m.conditionId,
+    conditionId,
     categories: m.categories,
     tags: m.tags,
     marketType: m.marketType,
