@@ -15,12 +15,55 @@ async function getMarketCacheStatus(db: PrismaClient) {
   });
 }
 
+type ExpiryFilter = "active" | "expired" | "all";
+
+/** Source timestamps may be unix seconds or ms; match UI normalisation threshold. */
+const MS_THRESHOLD = 1e10;
+
+function expiryWhere(expiry: ExpiryFilter): Prisma.CachedMarketWhereInput | undefined {
+  if (expiry === "all") return undefined;
+
+  const nowMs = Date.now();
+  const nowSec = Math.floor(nowMs / 1000);
+
+  const notExpired: Prisma.CachedMarketWhereInput = {
+    OR: [
+      {
+        AND: [
+          { expirationTimestamp: { lte: MS_THRESHOLD } },
+          { expirationTimestamp: { gt: nowSec } },
+        ],
+      },
+      {
+        AND: [
+          { expirationTimestamp: { gt: MS_THRESHOLD } },
+          { expirationTimestamp: { gt: nowMs } },
+        ],
+      },
+    ],
+  };
+
+  if (expiry === "active") return notExpired;
+
+  // expired / missing-as-expired: not in the active set
+  return { NOT: notExpired };
+}
+
+function isNotExpiredMarket(market: SourceMarket, nowMs = Date.now()): boolean {
+  const ts = market.expirationTimestamp;
+  if (ts == null || Number.isNaN(ts)) return false;
+  const nowSec = Math.floor(nowMs / 1000);
+  if (ts > MS_THRESHOLD) return ts > nowMs;
+  return ts > nowSec;
+}
+
 async function queryMarketCache(
   db: PrismaClient,
   opts: {
     sortBy?: string;
     sortOrder?: "asc" | "desc";
     tradeType?: "amm" | "clob" | "group";
+    expiry?: ExpiryFilter;
     marketIds?: number[];
     page: number;
     limit: number;
@@ -29,6 +72,8 @@ async function queryMarketCache(
   const where: Prisma.CachedMarketWhereInput = {};
   if (opts.tradeType) where.tradeType = opts.tradeType;
   if (opts.marketIds) where.id = { in: opts.marketIds };
+  const expiryClause = expiryWhere(opts.expiry ?? "active");
+  if (expiryClause) Object.assign(where, expiryClause);
 
   let orderBy: Prisma.CachedMarketOrderByWithRelationInput = { volume: "desc" };
   if (opts.sortBy === "liquidity") orderBy = { liquidity: "desc" };
@@ -123,13 +168,29 @@ export const sourceRouter = router({
           sortBy: z.string().optional(),
           sortOrder: z.enum(["asc", "desc"]).optional(),
           tradeType: z.enum(["amm", "clob", "group"]).optional(),
+          expiry: z.enum(["active", "expired", "all"]).default("active"),
           vaultAddress: z.string().optional(),
         })
         .optional(),
     )
     .query(async ({ ctx, input }) => {
-      const { page = 1, limit = 20, sortBy, sortOrder, tradeType, vaultAddress } = input ?? {};
-      const { markets, total } = await queryMarketCache(ctx.db, { sortBy, sortOrder, tradeType, page, limit });
+      const {
+        page = 1,
+        limit = 20,
+        sortBy,
+        sortOrder,
+        tradeType,
+        expiry = "active",
+        vaultAddress,
+      } = input ?? {};
+      const { markets, total } = await queryMarketCache(ctx.db, {
+        sortBy,
+        sortOrder,
+        tradeType,
+        expiry,
+        page,
+        limit,
+      });
       const enriched = await enrichWithDeploymentStatus(markets, ctx.db, vaultAddress);
       return { markets: enriched, total };
     }),
@@ -146,6 +207,7 @@ export const sourceRouter = router({
         limit: z.number().int().min(1).max(50).default(20),
         page: z.number().int().min(1).default(1),
         similarityThreshold: z.number().min(0).max(1).default(0.5),
+        expiry: z.enum(["active", "expired", "all"]).default("active"),
         vaultAddress: z.string().optional(),
       }),
     )
@@ -157,7 +219,12 @@ export const sourceRouter = router({
       });
       const matched = rows
         .map((row) => row.data as unknown as SourceMarket)
-        .filter((market) => matchesRecentSearch(market, input.query));
+        .filter((market) => matchesRecentSearch(market, input.query))
+        .filter((market) => {
+          if (input.expiry === "all") return true;
+          const active = isNotExpiredMarket(market);
+          return input.expiry === "active" ? active : !active;
+        });
       const markets = await enrichWithDeploymentStatus(
         matched.slice(offset, offset + input.limit),
         ctx.db,

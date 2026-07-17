@@ -46,12 +46,13 @@ function formatRelativeTime(date: Date | string): string {
 
 type SortKey = "newest" | "volume" | "liquidity" | "expiration";
 type TradeTypeFilter = "all" | "amm" | "clob" | "group";
+type ExpiryFilter = "active" | "expired" | "all";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatCards({ total }: { total: number }) {
   const stats = [
-    { label: "Total Markets", value: total, desc: "Active on Source" },
+    { label: "Total Markets", value: total, desc: "Matching current filters" },
     { label: "AMM Markets", value: "—", desc: "Automated market maker" },
     { label: "CLOB Markets", value: "—", desc: "Order book" },
     { label: "Group Markets", value: "—", desc: "Multi-outcome" },
@@ -167,11 +168,13 @@ function SemanticSearchBar({
 function BrowseFilters({
   search,
   tradeType,
+  expiry,
   sort,
   onFilterChange,
 }: {
   search: string;
   tradeType: TradeTypeFilter;
+  expiry: ExpiryFilter;
   sort: SortKey;
   onFilterChange: (key: string, value: string) => void;
 }) {
@@ -196,6 +199,17 @@ function BrowseFilters({
           <SelectItem value="amm" className="text-xs">AMM</SelectItem>
           <SelectItem value="clob" className="text-xs">CLOB</SelectItem>
           <SelectItem value="group" className="text-xs">Group</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={expiry} onValueChange={(v) => onFilterChange("expiry", v)}>
+        <SelectTrigger className="h-8 w-36 text-xs bg-secondary border-border text-foreground">
+          <SelectValue placeholder="Expiry" />
+        </SelectTrigger>
+        <SelectContent className="bg-card border-border text-foreground">
+          <SelectItem value="active" className="text-xs">Not Expired</SelectItem>
+          <SelectItem value="expired" className="text-xs">Expired</SelectItem>
+          <SelectItem value="all" className="text-xs">All</SelectItem>
         </SelectContent>
       </Select>
 
@@ -349,6 +363,7 @@ function PaginationRow({
 export function SourceEventsPage() {
   const [search, setSearch] = useState("");
   const [tradeType, setTradeType] = useState<TradeTypeFilter>("all");
+  const [expiry, setExpiry] = useState<ExpiryFilter>("active");
   const [sort, setSort] = useState<SortKey>("newest");
   const [expirationSortDir, setExpirationSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -380,13 +395,21 @@ export function SourceEventsPage() {
 
   const { data: browseData, isLoading: browseLoading, error: browseError } =
     trpc.source.list.useQuery(
-      { limit: PAGE_SIZE, page, sortBy: apiSortBy, sortOrder: sort === "expiration" ? expirationSortDir : undefined, tradeType: tradeType === "all" ? undefined : tradeType, vaultAddress },
+      {
+        limit: PAGE_SIZE,
+        page,
+        sortBy: apiSortBy,
+        sortOrder: sort === "expiration" ? expirationSortDir : undefined,
+        tradeType: tradeType === "all" ? undefined : tradeType,
+        expiry,
+        vaultAddress,
+      },
       { enabled: !isSemanticMode },
     );
 
   const { data: searchData, isLoading: searchLoading, error: searchError } =
     trpc.source.search.useQuery(
-      { query: semanticQuery, limit: 20, vaultAddress },
+      { query: semanticQuery, limit: 20, expiry, vaultAddress },
       { enabled: isSemanticMode },
     );
 
@@ -423,6 +446,7 @@ export function SourceEventsPage() {
     setPage(1);
     if (key === "search") setSearch(value);
     if (key === "tradeType") setTradeType(value as TradeTypeFilter);
+    if (key === "expiry") setExpiry(value as ExpiryFilter);
     if (key === "sort") setSort(value as SortKey);
   };
 
@@ -486,6 +510,7 @@ export function SourceEventsPage() {
             <BrowseFilters
               search={search}
               tradeType={tradeType}
+              expiry={expiry}
               sort={sort}
               onFilterChange={handleFilterChange}
             />
@@ -510,7 +535,13 @@ export function SourceEventsPage() {
               }
             } : undefined}
             onClearSemantic={handleSemanticClear}
-            onClearFilters={() => { setSearch(""); setTradeType("all"); setSort("newest"); setPage(1); }}
+            onClearFilters={() => {
+              setSearch("");
+              setTradeType("all");
+              setExpiry("active");
+              setSort("newest");
+              setPage(1);
+            }}
           />
 
           {!isSemanticMode && total > 0 && (
