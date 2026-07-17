@@ -8,7 +8,7 @@ export const praxisChain = baseSepolia;
 /** Default initial liquidity per side in human-readable USDC (contract seeds 2× this). */
 export const DEFAULT_INITIAL_LIQUIDITY_USDC = 1000;
 
-/** Default CTF for `createPool` / mock setup when not on `cpfPool` (Envio deployment has no CTF field). */
+/** Default CTF for `createPool` when not on `cpfPool` (Envio deployment has no CTF field). */
 export function getDefaultCtfContractAddress(): Address {
-  return deployment.mockConditionalTokens;
+  return deployment.conditionalTokens;
 }

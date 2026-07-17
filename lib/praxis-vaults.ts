@@ -4,11 +4,11 @@ import { deployment } from "@/config/contracts";
 // Each function returns a hardcoded address from the shared deployment config.
 
 export function getVaultUsdcAddress(): Address {
-  return deployment.mockUSDC;
+  return deployment.usdc;
 }
 
 export function getVaultMorphoVaultAddress(): Address {
-  return deployment.mockMorphoVault;
+  return deployment.morphoVault;
 }
 
 export function getVaultTreasuryAddress(): Address {

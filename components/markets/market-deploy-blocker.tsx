@@ -31,12 +31,12 @@ export function MarketDeployBlocker({
             With an active vault (Vaults page), the pool factory comes from Envio{" "}
             <span className="font-mono text-foreground">CPFDeploymentInfo.id</span> (matched by{" "}
             <span className="font-mono text-foreground">stakingToken</span> = vault YT). The CTF
-            contract uses <span className="font-mono text-foreground">mockConditionalTokens</span>.
+            contract uses <span className="font-mono text-foreground">conditionalTokens</span>.
             With no active vault, set{" "}
             <span className="font-mono text-foreground">
               NEXT_PUBLIC_PRAXIS_POOL_FACTORY_ADDRESS
             </span>{" "}
-            and <span className="font-mono text-foreground">mockConditionalTokens</span> in{" "}
+            and <span className="font-mono text-foreground">conditionalTokens</span> in{" "}
             <span className="font-mono text-foreground">config/contracts.ts</span>. Restart{" "}
             <span className="font-mono text-foreground">pnpm dev</span> after editing env.
           </p>
@@ -67,13 +67,13 @@ export function MarketDeployBlocker({
             <li>
               Active vault needs a matching{" "}
               <span className="font-mono text-foreground">CPFDeploymentInfo</span> and valid{" "}
-              <span className="font-mono text-foreground">mockConditionalTokens</span> (see
+              <span className="font-mono text-foreground">conditionalTokens</span> (see
               config/contracts.ts).
             </li>
           )}
           {!vaultAddress && !poolTokenAddress && (
             <li>
-              Set <span className="font-mono text-foreground">mockConditionalTokens</span> in
+              Set <span className="font-mono text-foreground">conditionalTokens</span> in
               config/contracts.ts (and select a vault with Envio{" "}
               <span className="font-mono text-foreground">CPFDeploymentInfo</span> for the
               factory).
