@@ -292,16 +292,16 @@ function PoolParameterFields({
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs font-medium">
             Seed liquidity{" "}
-            <span className="font-normal text-muted-foreground">(YT wei / side)</span>
+            <span className="font-normal text-muted-foreground">(YT base units, 6 decimals)</span>
           </Label>
           <Input
             value={initialLiquidityYtInput}
             onChange={(e) => onLiquidityChange(e.target.value)}
-            placeholder="1000000000000000000000"
+            placeholder="1000000000"
             className="h-8 text-xs font-mono bg-secondary border-border text-foreground placeholder:text-muted-foreground"
             disabled={isLoading}
           />
-          <p className="text-xs text-muted-foreground">Pool receives 2× total YT</p>
+          <p className="text-xs text-muted-foreground">1000000000 = 1000 YT</p>
         </div>
       </div>
 

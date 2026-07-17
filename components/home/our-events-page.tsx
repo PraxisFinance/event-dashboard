@@ -17,6 +17,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 15;
 
+/** True when expirationTimestamp is set and still in the future (seconds or ms). */
+function isNotExpired(event: PredictionEvent, nowSec = Math.floor(Date.now() / 1000)): boolean {
+  const ts = event.expirationTimestamp;
+  if (ts == null) return false;
+  const sec = ts > 1e10 ? Math.floor(ts / 1000) : ts;
+  return sec > nowSec;
+}
+
 function PageSkeleton() {
   return (
     <div className="flex flex-col gap-6">
@@ -53,14 +61,26 @@ export function OurEventsPage() {
     search: "",
     status: "all",
     platform: "all",
+    expiry: "active",
     sort: "newest",
   });
   const [page, setPage] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState<PredictionEvent | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const nonExpiredEvents = useMemo(
+    () => praxisEvents.filter((e) => isNotExpired(e)),
+    [praxisEvents]
+  );
+
   const filtered = useMemo(() => {
     let result = [...praxisEvents];
+
+    if (filters.expiry === "active") {
+      result = result.filter((e) => isNotExpired(e));
+    } else if (filters.expiry === "expired") {
+      result = result.filter((e) => !isNotExpired(e));
+    }
 
     if (filters.search) {
       const q = filters.search.toLowerCase();
@@ -135,7 +155,7 @@ export function OurEventsPage() {
             </Card>
           ) : (
             <>
-              <StatCards events={praxisEvents} />
+              <StatCards events={nonExpiredEvents} />
 
               <FilterBar
                 filters={filters}

@@ -25,7 +25,7 @@ export function StatCards({ events }: { events: PredictionEvent[] }) {
   const pendingImport = total - onPlatform;
 
   const stats: StatCardProps[] = [
-    { label: "Total Events", value: total, description: "All Praxis-native events" },
+    { label: "Total Events", value: total, description: "Non-expired Praxis-native events" },
     { label: "On Platform", value: onPlatform, description: "Events deployed to Praxis smart contract" },
     { label: "Open Markets", value: openMarkets, description: "Events with status open" },
     { label: "Not Deployed", value: pendingImport, description: "Pending deployment" },

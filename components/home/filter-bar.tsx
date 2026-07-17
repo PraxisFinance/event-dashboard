@@ -15,6 +15,8 @@ export interface FilterState {
   status: string;
   source?: string;
   platform: string;
+  /** active = not expired (default); expired = past/null expiry; all = no expiry filter */
+  expiry: string;
   sort: string;
 }
 
@@ -78,6 +80,18 @@ export function FilterBar({ filters, onFilterChange, hideSourceFilter = false }:
           <SelectItem value="all" className="text-xs">All</SelectItem>
           <SelectItem value="on" className="text-xs">On Platform</SelectItem>
           <SelectItem value="off" className="text-xs">Not on Platform</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Expiry filter — default hides expired / missing expiration */}
+      <Select value={filters.expiry} onValueChange={(v) => update("expiry", v)}>
+        <SelectTrigger className="h-8 w-36 text-xs bg-secondary border-border text-foreground">
+          <SelectValue placeholder="Expiry" />
+        </SelectTrigger>
+        <SelectContent className="bg-card border-border text-foreground">
+          <SelectItem value="active" className="text-xs">Not Expired</SelectItem>
+          <SelectItem value="expired" className="text-xs">Expired</SelectItem>
+          <SelectItem value="all" className="text-xs">All</SelectItem>
         </SelectContent>
       </Select>
 

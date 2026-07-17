@@ -39,11 +39,11 @@ export function getTwoPoolDefaultFeePercentage(): string {
 }
 
 /**
- * Default initial seed liquidity per side as a raw uint256 string (YT wei).
- * Pool receives 2× this amount total.
+ * Default initial seed liquidity as a raw uint256 string (YT base units, 6 decimals).
+ * 1000000000 = 1000 YT. Matches backend getTwoPoolDefaultSeedAmount().
  */
 export function getTwoPoolDefaultSeedAmount(): string {
   return (
-    process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_SEED_AMOUNT ?? "1000000000000000000000"
-  ).trim() || "1000000000000000000000";
+    process.env.NEXT_PUBLIC_TWO_POOL_DEFAULT_SEED_AMOUNT ?? "1000000000"
+  ).trim() || "1000000000";
 }
