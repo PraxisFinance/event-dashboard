@@ -112,22 +112,29 @@ const SPORT_TYPE_MAP: Partial<Record<string, SportDisciplineId>> = {
   "formula-1": "formula1",
   formula_1: "formula1",
   f1: "formula1",
+  tennis: "tennis",
 };
 
 // ── Pattern detectors ──────────────────────────────────────────────────────────
 
-/** Pattern 1: esports match winner (group with esportTitle in metadata). */
+/** Pattern 1: esports match winner (group with esportTitle in metadata) or
+ *  esports single prop (map winner etc., with videogameSlug in metadata).
+ */
 function deriveEsports(event: CreateMarketEvent): DerivedMarketMetadata | null {
   const meta = event.sourceMetadata;
-  if (!meta?.esportTitle) return null;
+  // Groups carry `esportTitle`; single esports props carry `videogameSlug`.
+  const esportSlug = (meta?.esportTitle ?? meta?.videogameSlug) as
+    | string
+    | undefined;
+  if (!esportSlug) return null;
 
   const mA = event.markets?.[0];
   const mB = event.markets?.[1];
-  const teamAName = mA?.title ?? (meta.homeTeam as string | undefined) ?? "";
-  const teamBName = mB?.title ?? (meta.awayTeam as string | undefined) ?? "";
+  const teamAName = mA?.title ?? (meta?.homeTeam as string | undefined) ?? "";
+  const teamBName = mB?.title ?? (meta?.awayTeam as string | undefined) ?? "";
   const teamALogoUrl = mA?.logo ?? mA?.imageUrl ?? "";
   const teamBLogoUrl = mB?.logo ?? mB?.imageUrl ?? "";
-  const gameId = mapEsportTitle(meta.esportTitle as string);
+  const gameId = mapEsportTitle(esportSlug);
 
   return {
     category: "esports",
@@ -142,8 +149,10 @@ function deriveEsports(event: CreateMarketEvent): DerivedMarketMetadata | null {
  *
  *  Football groups have 3 sub-markets (Home / Away / Draw). We filter out the
  *  "Draw" market and take the first two as teamA / teamB.
- *  Single sport props (corners, cards, etc.) derive only disciplineId — team
- *  data is not available, so those fields remain empty for manual entry.
+ *  Singles carry team/player names in metadata (homeTeam/awayTeam, plus
+ *  player1Name/player2Name for tennis). Moneyline singles resolve to a team,
+ *  so sides mirror the team names; other props (total goals, corners, etc.)
+ *  resolve Yes/No. Logos are not available on singles and stay manual.
  */
 function deriveSport(event: CreateMarketEvent): DerivedMarketMetadata | null {
   const meta = event.sourceMetadata;
@@ -181,13 +190,24 @@ function deriveSport(event: CreateMarketEvent): DerivedMarketMetadata | null {
     };
   }
 
-  // Single sport prop — derive discipline only; team data must be filled manually
+  // Single sport market — team/player names come from metadata
+  const teamAName =
+    ((meta?.player1Name ?? meta?.homeTeam) as string | undefined) ?? "";
+  const teamBName =
+    ((meta?.player2Name ?? meta?.awayTeam) as string | undefined) ?? "";
+  const isMoneyline = meta?.binaryMarketType === "moneyline";
+
   return {
     category: "sport",
     resolutionType: "winner",
-    sideALabel: "",
-    sideBLabel: "",
-    metadata: { disciplineId, resolutionDeadlineLabel: expirationDate },
+    sideALabel: isMoneyline ? teamAName : "Yes",
+    sideBLabel: isMoneyline ? teamBName : "No",
+    metadata: {
+      disciplineId,
+      teamAName,
+      teamBName,
+      resolutionDeadlineLabel: expirationDate,
+    },
   };
 }
 

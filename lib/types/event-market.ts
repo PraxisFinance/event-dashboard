@@ -60,6 +60,7 @@ export const SPORT_DISCIPLINE_OPTIONS = [
   { value: "basketball", label: "Basketball" },
   { value: "hockey", label: "Hockey" },
   { value: "formula1", label: "Formula 1" },
+  { value: "tennis", label: "Tennis" },
 ] as const;
 export type SportDisciplineId = (typeof SPORT_DISCIPLINE_OPTIONS)[number]["value"];
 
