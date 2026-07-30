@@ -117,6 +117,17 @@ const SPORT_TYPE_MAP: Partial<Record<string, SportDisciplineId>> = {
 
 // ── Pattern detectors ──────────────────────────────────────────────────────────
 
+/** Builds a PandaScore team logo URL from an opponent id.
+ *  Esports singles carry `homeOpponentId`/`awayOpponentId` instead of
+ *  sub-market logos; the ids match the PandaScore CDN used by group
+ *  sub-markets (e.g. .../team/image/3213/fixed/logo.png).
+ */
+function pandascoreTeamLogo(opponentId: unknown): string {
+  if (typeof opponentId !== "number" && typeof opponentId !== "string") return "";
+  if (opponentId === "") return "";
+  return `https://cdn.pandascore.co/images/team/image/${opponentId}/fixed/logo.png`;
+}
+
 /** Pattern 1: esports match winner (group with esportTitle in metadata) or
  *  esports single prop (map winner etc., with videogameSlug in metadata).
  */
@@ -132,8 +143,10 @@ function deriveEsports(event: CreateMarketEvent): DerivedMarketMetadata | null {
   const mB = event.markets?.[1];
   const teamAName = mA?.title ?? (meta?.homeTeam as string | undefined) ?? "";
   const teamBName = mB?.title ?? (meta?.awayTeam as string | undefined) ?? "";
-  const teamALogoUrl = mA?.logo ?? mA?.imageUrl ?? "";
-  const teamBLogoUrl = mB?.logo ?? mB?.imageUrl ?? "";
+  const teamALogoUrl =
+    mA?.logo ?? mA?.imageUrl ?? pandascoreTeamLogo(meta?.homeOpponentId);
+  const teamBLogoUrl =
+    mB?.logo ?? mB?.imageUrl ?? pandascoreTeamLogo(meta?.awayOpponentId);
   const gameId = mapEsportTitle(esportSlug);
 
   return {
