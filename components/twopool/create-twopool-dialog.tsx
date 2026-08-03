@@ -396,7 +396,12 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
   };
 
   const handleDeploy = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     setError(null);
+
+    const idempotencyKey = crypto.randomUUID();
+
     try {
       if (!isAddress(vault)) throw new Error("Vault must be a valid address.");
       if (!isAddress(curve)) throw new Error("Curve must be a valid address.");
@@ -418,7 +423,6 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
       if (end <= start) throw new Error("End time must be after start time.");
 
       await ensureAuthenticated();
-      setIsLoading(true);
 
       const result = await backendFetch<{ txHash: string; poolAddress: string; ytAddress?: string }>(
         "/twopools/deploy",
@@ -438,6 +442,7 @@ export function CreateTwoPoolDialog({ open, onOpenChange, onCreated }: CreateTwo
             initialLiquidityYt: initialLiquidityYtInput.trim(),
             ...(openingPriceStableInput.trim() ? { openingPriceStable: openingPriceStableInput.trim() } : {}),
           }),
+          idempotencyKey,
         },
       );
 

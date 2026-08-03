@@ -261,8 +261,11 @@ export function useCreateMarketForm(
   );
 
   const handleCreate = async () => {
-    if (!event) return;
+    if (!event || isLoading) return;
+    setIsLoading(true);
     setError(null);
+
+    const idempotencyKey = crypto.randomUUID();
 
     try {
       if (!poolFactory) {
@@ -303,7 +306,6 @@ export function useCreateMarketForm(
         throw new Error("Initial liquidity must be a positive number.");
 
       await ensureAuthenticated();
-      setIsLoading(true);
 
       const result = await backendFetch<{ contractTxHash: string; contractEventId: string }>(
         '/events/deploy-market',
@@ -334,6 +336,7 @@ export function useCreateMarketForm(
             cpfAddress: poolFactory,
             vault: vaultAddress || null,
           }),
+          idempotencyKey,
         },
       );
 

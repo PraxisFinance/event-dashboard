@@ -35,14 +35,19 @@ export function MintCard() {
     !isLoading;
 
   const handleMint = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     setError(null);
     setResult(null);
+
+    const idempotencyKey = crypto.randomUUID();
+
     try {
       await ensureAuthenticated();
-      setIsLoading(true);
       const res = await backendFetch<MintResult>("/token-lab/mint", {
         method: "POST",
         body: JSON.stringify({ tokenAddress, to: recipient, amount }),
+        idempotencyKey,
       });
       setResult(res);
     } catch (err) {

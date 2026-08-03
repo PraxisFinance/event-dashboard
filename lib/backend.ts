@@ -25,22 +25,56 @@ export function clearStoredToken(): void {
   sessionStorage.removeItem(TOKEN_KEY)
 }
 
+/**
+ * Endpoints that require a stable `Idempotency-Key` header (backend returns
+ * 400 without it). Generate the key once per user-initiated mutation attempt
+ * with `crypto.randomUUID()`, pass it via `BackendFetchOptions.idempotencyKey`,
+ * and reuse the same value for retries of that same attempt. Mint a new key
+ * only for a new, separate user attempt.
+ *
+ *   POST /referrals/bind        (praxis-baseapp)
+ *   POST /faucet/sign           (praxis-baseapp)
+ *   POST /faucet/eth            (praxis-baseapp)
+ *   POST /twopools/deploy
+ *   POST /ryd/deploy
+ *   POST /vaults/deploy
+ *   POST /token-lab/mint
+ *   POST /events/deploy-market
+ */
+export interface BackendFetchOptions extends RequestInit {
+  idempotencyKey?: string
+}
+
 export async function backendFetch<T = unknown>(
   path: string,
-  init: RequestInit = {},
+  init: BackendFetchOptions = {},
 ): Promise<T> {
+  const { idempotencyKey, headers: initHeaders, ...rest } = init
   const token = getStoredToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string> | undefined),
+    ...(initHeaders as Record<string, string> | undefined),
+    ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 
-  const res = await fetch(`${BACKEND_URL}${path}`, { ...init, headers })
+  const res = await fetch(`${BACKEND_URL}${path}`, { ...rest, headers })
 
   if (res.status === 401) {
     clearStoredToken()
     throw new Error('Backend session expired — please re-authenticate')
+  }
+
+  if (res.status === 409 && idempotencyKey) {
+    throw new Error(
+      'This action is already in progress from a previous attempt. Please wait a moment and check the result before retrying.',
+    )
+  }
+
+  if (res.status === 422 && idempotencyKey) {
+    throw new Error(
+      'Idempotency key was reused with a different request body. This indicates a client bug — please retry as a fresh attempt.',
+    )
   }
 
   if (!res.ok) {

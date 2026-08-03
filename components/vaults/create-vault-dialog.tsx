@@ -94,7 +94,11 @@ export function CreateVaultDialog({
   };
 
   const handleDeploy = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     setError(null);
+
+    const idempotencyKey = crypto.randomUUID();
 
     try {
       if (!praxisRegistryAddress)
@@ -114,13 +118,13 @@ export function CreateVaultDialog({
         throw new Error("CPF end time must be after start time.");
 
       await ensureAuthenticated();
-      setIsLoading(true);
 
       const deployResult = await backendFetch<{ vault?: string; cpf?: string; txHash?: string }>(
         '/vaults/deploy',
         {
           method: 'POST',
           body: JSON.stringify({ usdc, morphoVault, maturityTs, treasury, startTs, endTs }),
+          idempotencyKey,
         },
       );
 

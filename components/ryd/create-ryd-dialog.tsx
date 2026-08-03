@@ -76,7 +76,11 @@ export function CreateRydDialog({
   };
 
   const handleDeploy = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     setError(null);
+
+    const idempotencyKey = crypto.randomUUID();
 
     try {
       if (!vaultAddress || !isAddress(vaultAddress))
@@ -92,7 +96,6 @@ export function CreateRydDialog({
         throw new Error("End time must be in the future.");
 
       await ensureAuthenticated();
-      setIsLoading(true);
 
       const result = await backendFetch<{ txHash: string; rydAddress: string }>(
         '/ryd/deploy',
@@ -106,6 +109,7 @@ export function CreateRydDialog({
             minDepositUsdc: minDepositUsdc || "0",
             endTs,
           }),
+          idempotencyKey,
         },
       );
 
